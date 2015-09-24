@@ -1,20 +1,20 @@
 ----------------------------------------------------------------------------------
--- Company: 
--- Engineer: 
--- 
--- Create Date:    09:29:59 06/04/2015 
--- Design Name: 
--- Module Name:    shell - Behavioral 
--- Project Name: 
--- Target Devices: 
--- Tool versions: 
--- Description: 
+-- Company:
+-- Engineer:
 --
--- Dependencies: 
+-- Create Date:    09:29:59 06/04/2015
+-- Design Name:
+-- Module Name:    shell - Behavioral
+-- Project Name:
+-- Target Devices:
+-- Tool versions:
+-- Description:
 --
--- Revision: 
+-- Dependencies:
+--
+-- Revision:
 -- Revision 0.01 - File Created
--- Additional Comments: 
+-- Additional Comments:
 --
 ----------------------------------------------------------------------------------
 library IEEE;
@@ -33,52 +33,52 @@ entity shell is
 	port(
 			-- Clock
 			CLK : in  STD_LOGIC;
-			
+
 			-- Switches and buttons
 			SW : in  STD_LOGIC_VECTOR (7 downto 0);
 			BTN : in  STD_LOGIC_VECTOR (4 downto 0);
-			
+
 			-- Digits
 			SSEG_CA : out  STD_LOGIC_VECTOR (7 downto 0);
 			SSEG_AN : out  STD_LOGIC_VECTOR (3 downto 0);
-				
+
 			-- LED
 			LED : out  STD_LOGIC_VECTOR (7 downto 0);
-			
+
 			-- UART
 			UART_RXD : in std_logic;
 			UART_TXD : out std_logic;
-			
-			-- RAM	
-			RAM_ADDR : out std_logic_vector(25 downto 0);			
-			RAM_DATA : inout std_logic_vector(15 downto 0);			
-			RAM_CLK_out : out std_logic;			
-			RAM_nCE : out std_logic;			
-			RAM_nWE : out std_logic;			
-			RAM_nOE : out std_logic;					
-			RAM_nADV : out std_logic;			
-			RAM_CRE : out std_logic;			
+
+			-- RAM
+			RAM_ADDR : out std_logic_vector(25 downto 0);
+			RAM_DATA : inout std_logic_vector(15 downto 0);
+			RAM_CLK_out : out std_logic;
+			RAM_nCE : out std_logic;
+			RAM_nWE : out std_logic;
+			RAM_nOE : out std_logic;
+			RAM_nADV : out std_logic;
+			RAM_CRE : out std_logic;
 			RAM_nLB : out std_logic;
-			RAM_nUB : out std_logic;			
+			RAM_nUB : out std_logic;
 			RAM_WAIT_in : in std_logic;
-			
+
 			-- PHY
 			PHY_MDIO : inout std_logic;
 			PHY_MDC : out std_logic;
 			PHY_nRESET : out std_logic;
 			PHY_COL : in std_logic;
 			PHY_CRS : in std_logic;
-			
+
 			PHY_TXD : out std_logic_vector(3 downto 0);
 			PHY_nINT : out std_logic;
 			PHY_TXEN : out std_logic;
 			PHY_TXCLK : in std_logic;
-			
+
 			PHY_RXD : in std_logic_vector(3 downto 0);
 			PHY_RXER : in std_logic;
 			PHY_RXDV : in std_logic;
 			PHY_RXCLK : in std_logic
-			
+
 		);
 end shell;
 
@@ -94,24 +94,24 @@ architecture Behavioral of shell is
          nRD : IN  std_logic
         );
     END COMPONENT;
-	
+
 	COMPONENT EdgeDetect
 	PORT(
 		sin : IN std_logic;
-		CLK : IN std_logic;          
+		CLK : IN std_logic;
 		srising : OUT std_logic;
 		sfalling : OUT std_logic
 		);
 	END COMPONENT;
-	
+
 	COMPONENT btn_debounce
 	PORT(
 		BTN_I : IN std_logic_vector(4 downto 0);
-		CLK : IN std_logic;          
+		CLK : IN std_logic;
 		BTN_O : OUT std_logic_vector(4 downto 0)
 		);
 	END COMPONENT;
-	
+
 	COMPONENT UART_w_FIFO
 	PORT(
 		nRST : IN std_logic;
@@ -119,14 +119,14 @@ architecture Behavioral of shell is
 		RX_serial : IN std_logic;
 		DIN : IN std_logic_vector(7 downto 0);
 		WR : IN std_logic;
-		RD : IN std_logic;          
+		RD : IN std_logic;
 		TX_serial : OUT std_logic;
 		FULL : OUT std_logic;
 		DOUT : OUT std_logic_vector(7 downto 0);
 		DOUTV : OUT std_logic
 		);
 	END COMPONENT;
-	
+
 	COMPONENT MAC
 	PORT(
 		CLK : IN std_logic;
@@ -137,7 +137,7 @@ architecture Behavioral of shell is
 		MDIO_Busy : IN std_logic;
 		RdU : IN std_logic;
 		WrU : IN std_logic;
-		SELT : IN std_logic;          
+		SELT : IN std_logic;
 		TXEN : OUT std_logic;
 		TXDU : OUT std_logic_vector(7 downto 0);
 		RXDC : OUT std_logic_vector(7 downto 0);
@@ -150,7 +150,7 @@ architecture Behavioral of shell is
 		TXCLK_f : IN std_logic
 		);
 	END COMPONENT;
-	
+
 	COMPONENT MII
 	PORT(
 		CLK : IN std_logic;
@@ -160,7 +160,7 @@ architecture Behavioral of shell is
 		TXDV : IN std_logic;
 		RXDV : IN std_logic;
 		TX_in : IN std_logic_vector(7 downto 0);
-		RXD : IN std_logic_vector(3 downto 0);          
+		RXD : IN std_logic_vector(3 downto 0);
 		TXEN : OUT std_logic;
 		TXD : OUT std_logic_vector(3 downto 0);
 		RX_out : OUT std_logic_vector(7 downto 0);
@@ -169,33 +169,33 @@ architecture Behavioral of shell is
 		TXCLK_f : OUT std_logic
 		);
 	END COMPONENT;
-	
-	
-	
+
+
+
 	signal nRST : std_logic;
-	
-	
+
+
 	-- Signal for UART
 	signal UART_DIN : std_logic_vector(7 downto 0);
 	signal UART_WR : std_logic;
 	signal UART_FULL : std_logic;
-	
+
 	signal UART_DOUT : std_logic_vector(7 downto 0);
 	signal UART_RD : std_logic;
 	signal UART_DOUTV : std_logic;
-	
-	
+
+
 	-- Signal for buttons
 	signal BTN_db : std_logic_vector(4 downto 0); -- Debounced button signal
 	signal BTN_dly : std_logic_vector(4 downto 0); -- Delayed button signal
 	signal BTN_r : std_logic_vector(4 downto 0); -- Rising edge of buttons
 	signal BTN_f : std_logic_vector(4 downto 0); -- Falling edge of buttons
-	
+
 	-- Signals for MDIO
 	signal MDIO_busy : std_logic;
 	signal MDIO_nWR : std_logic;
 	signal MDIO_nRD : std_logic;
-	
+
 	-- Signals for MAC
 	signal MAC_TXDV : std_logic;
 	signal MAC_TXEN : std_logic;
@@ -209,28 +209,28 @@ architecture Behavioral of shell is
 	signal MAC_RdU : std_logic;
 	signal MAC_WrU : std_logic;
 	signal MAC_SELT : std_logic;
-	signal MAC_SELR : std_logic;	
+	signal MAC_SELR : std_logic;
 	signal MAC_TXCLK_f : std_logic;
-	
-	
+
+
 	--- DEBUG
 	signal flip : std_logic;
 	signal busy_test : std_logic;
 	signal MDIO_MDIO : std_logic;
-	
+
 	signal PHY_TXEN_dummy : std_logic;
 	signal MAC_TXEN_r : std_logic;
 	signal MAC_TXEN_f : std_logic;
 begin
-	
+
 	PHY_TXEN <= PHY_TXEN_dummy;
 	SSEG_CA <= (others => '0');
 	SSEG_AN <= (others => '1');
-	
+
 	PHY_MDIO <= MDIO_MDIO;
 	LED <= (0 => UART_DOUTV, 1 => MAC_TXEN, 2 => PHY_TXEN_dummy,
 			3 => MAC_RdU, 4 => MAC_RdC, 5 => MAC_WrU, others => '0');
-	
+
 	RAM_ADDR <= (others => '0');
 	RAM_CLK_out <= '0';
 	RAM_nCE <= '1';
@@ -240,11 +240,11 @@ begin
 	RAM_CRE <= '0';
 	RAM_nLB <= '1';
 	RAM_nUB <= '1';
-	
+
 	PHY_nRESET <= nRST;
 	PHY_nINT <= '1';
 
-	
+
 	UART_w_FIFO_inst: UART_w_FIFO PORT MAP(
 		nRST => nRST,
 		CLK => CLK,
@@ -256,17 +256,17 @@ begin
 		DOUT => UART_DOUT,
 		RD => UART_RD,
 		DOUTV => UART_DOUTV
-	);	
+	);
 
 	nRST <= not BTN(4);
-	
+
 	process (CLK)
 	begin
 		if(BTN_r(0) = '1') then
 			flip <= not flip;
-		end if;		
+		end if;
 	end process;
-	
+
 	process (nRST, CLK)
 	begin
 		if (nRST = '0') then
@@ -277,20 +277,20 @@ begin
 			end if;
 		end if;
 	end process;
-	
+
 	btn_debounce_inst: btn_debounce PORT MAP(
 		BTN_I => BTN,
 		CLK => CLK,
 		BTN_O => BTN_db
 	);
-	
+
 	process(CLK)
 	begin
 		if(rising_edge(CLK)) then
 			BTN_dly <= BTN_db;
 		end if;
 	end process;
-	
+
 	process(BTN_dly, BTN_db)
 	begin
 		for i in 0 to 4 loop
@@ -300,7 +300,7 @@ begin
 			else
 				BTN_r(i) <= '0';
 			end if;
-			
+
 			if (BTN_db(i) = '0' and BTN_dly(i) = '1') then
 				-- 0 -> 1 : Falling edge
 				BTN_f(i) <= '1';
@@ -309,19 +309,19 @@ begin
 			end if;
 		end loop;
 	end process;
-	
-	-- MDIO 
-    MDIO_inst: MDIO PORT MAP (
-          CLK => CLK,
-          nRST => nRST,
-          CLK_MDC => PHY_MDC,
-          data_MDIO => MDIO_MDIO,
-          busy => MDIO_busy,
-          nWR => MDIO_nWR,
-          nRD => MDIO_nRD
-        );
-		
-	-- MAC
+
+	-- MDIO
+  MDIO_inst: MDIO PORT MAP (
+        CLK => CLK,
+        nRST => nRST,
+        CLK_MDC => PHY_MDC,
+        data_MDIO => MDIO_MDIO,
+        busy => MDIO_busy,
+        nWR => MDIO_nWR,
+        nRD => MDIO_nRD
+      );
+
+	 --MAC
 	MAC_inst: MAC PORT MAP(
 		CLK => CLK,
 		nRST => nRST,
@@ -343,8 +343,8 @@ begin
 		SELR => MAC_SELR,
 		TXCLK_f => MAC_TXCLK_f
 	);
-	
-	-- MII	
+
+	-- MII
 	MII_inst: MII PORT MAP(
 		CLK => CLK,
 		TXCLK => PHY_TXCLK,
@@ -362,19 +362,19 @@ begin
 		TXCLK_f => MAC_TXCLK_f
 	);
 	MAC_SELT <= '0';
-	
-	MAC_TXDV <= UART_DOUTV;	
+
+	MAC_TXDV <= UART_DOUTV;
 	MAC_TXDC <= UART_DOUT;
 	UART_RD <= MAC_RdC;
-	
+
 -- DEBUG: forward data to PHY to UART
 --	UART_DIN <= MAC_TXDU;
 --	UART_WR <= MAC_RdU;
---	UART_DIN <= MAC_RXDC;
---	UART_WR <= MAC_WrC;
-	UART_DIN <= MAC_RXDU;
-	UART_WR <= MAC_WrU;
-	
+	UART_DIN <= MAC_RXDC;
+	UART_WR <= MAC_WrC;
+-- UART_DIN <= MAC_RXDU;
+-- UART_WR <= MAC_WrU;
+
 	EdgeDetect_inst : EdgeDetect
 	port map(
 					CLK => CLK,
@@ -382,8 +382,8 @@ begin
 					srising => MAC_TXEN_r,
 					sfalling => MAC_TXEN_f
 	);
-														
-	
+
+
 
 end Behavioral;
 

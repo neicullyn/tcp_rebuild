@@ -162,14 +162,14 @@ begin
   SELR <= '0' when RX_client = IP else '1';
 
   TXDU <= TX_register;
-  RXDC <= RX_register;
-  RXER <= ER_register;
 
   RXC_DATA <= RXDU;
 
-  MDIO_conf: process(CLK)
+  MDIO_conf: process(nRST, CLK)
   begin
-    if (rising_edge(CLK)) then
+    if (nRST = '0') then
+      Sys_status <= PowerOn;
+    elsif (rising_edge(CLK)) then
       case Sys_status is
         when PowerOn =>
           if (MDIO_busy = '0') then
@@ -216,7 +216,6 @@ begin
       ER_register <= '0';
 
       TXEN <= '0';
-      WrC <= '0';
       RdC <= '0';
     elsif (Sys_status = Ready) then
       if (rising_edge(CLK)) then  -- system triggered by rising edge, modify when necessary
@@ -499,62 +498,64 @@ begin
     end if;
   end process;
 
-  RX_SM: process (nRST, CLK)
+  RX_SM: process (CLK, nRST)
   begin
     if (nRST = '0') then
       RX_state <= Idle;
       RX_counter <= 0;
       RX_interpacket_counter <= 0;
-    elsif (Sys_status = Ready and rising_edge(CLK)) then
-      case RX_state is
-        when Idle =>
-          if (WrU = '1') then
-            RX_state <= Dst;
-          end if;
+    elsif (rising_edge(CLK)) then
+      if (Sys_status = Ready) then
+        case RX_state is
+          when Idle =>
+            if (WrU = '1') then
+              RX_state <= Dst;
+            end if;
 
-        when Dst =>
-        	if (WrU = '1') then
-        	  if (RX_counter = 5) then
-        	    RX_state <= Src;
-        	    RX_counter <= 0;
-        	  else
-        		  RX_counter <= RX_counter + 1;
-        		end if;
-        	end if;
+          when Dst =>
+            if (WrU = '1') then
+              if (RX_counter = 5) then
+                RX_state <= Src;
+                RX_counter <= 0;
+              else
+                RX_counter <= RX_counter + 1;
+              end if;
+            end if;
 
-        when Src =>
-        	if (WrU = '1') then
-        	  if (RX_counter = 5) then
-        	    RX_state <= EtherType;
-        	    RX_counter <= 0;
-        	  else
-        		  RX_counter <= RX_counter + 1;
-        		end if;
-        	end if;
+          when Src =>
+            if (WrU = '1') then
+              if (RX_counter = 5) then
+                RX_state <= EtherType;
+                RX_counter <= 0;
+              else
+                RX_counter <= RX_counter + 1;
+              end if;
+            end if;
 
-        when EtherType =>
-        	if (WrU = '1') then
-        	  if (RX_counter = 1) then
-        	    RX_state <= Payload;
-        	    RX_counter <= 0;
-        	    RX_interpacket_counter <= 0;
-        	  else
-        		  RX_counter <= RX_counter + 1;
-        		end if;
-        	end if;
+          when EtherType =>
+            if (WrU = '1') then
+              if (RX_counter = 1) then
+                RX_state <= Payload;
+                RX_counter <= 0;
+                RX_interpacket_counter <= 0;
+              else
+                RX_counter <= RX_counter + 1;
+              end if;
+            end if;
 
-        when Payload =>
-          if (WrU = '1') then
-            RX_interpacket_counter <= 0;
-        	elsif (RX_interpacket_counter = 7) then
-        		RX_state <= EOP;
-        	elsif (TXCLK_f = '1') then
-        	  RX_interpacket_counter <= RX_interpacket_counter + 1;
-        	end if;
+          when Payload =>
+            if (WrU = '1') then
+              RX_interpacket_counter <= 0;
+            elsif (RX_interpacket_counter = 7) then
+              RX_state <= EOP;
+            elsif (TXCLK_f = '1') then
+              RX_interpacket_counter <= RX_interpacket_counter + 1;
+            end if;
 
-        when EOP =>
-        	RX_state <= Idle;
-      end case;
+          when EOP =>
+            RX_state <= Idle;
+        end case;
+      end if;
     end if;
   end process;
 
@@ -588,7 +589,7 @@ begin
     CRC_VALID => RXCRC_CRC_VALID
   );
 
-  RXCRC_control : process (WrU, RX_state)
+  RXCRC_control: process (WrU, RX_state)
   begin
     if (WrU = '1' and RX_state = Idle) then
       RXCRC_LOAD_INIT <= '1';
@@ -610,5 +611,24 @@ begin
     end if;
   end process;
 
-end Behavioral;
+  RXER_process: process (RXCRC_CRC_VALID, MACAddressCheck_AddrValid, RX_state)
+  begin
+    if (RX_state = EOP) then
+      RXER <= not (RXCRC_CRC_VALID and MACAddressCheck_AddrValid);
+    else
+      RXER <= '0';
+    end if;
+  end process;
 
+  RXDC <= RXDU;
+
+  WrC_process: process (WrU, RX_state)
+  begin
+    if (RX_state = Payload) then
+      WrC <= WrU;
+    else
+      WrC <= '0';
+    end if;
+  end process;
+
+end Behavioral;
