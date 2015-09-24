@@ -41,6 +41,7 @@ entity MAC is
     RXDC : out STD_LOGIC_VECTOR (7 downto 0); -- receive data bus to client layer via dispatcher
     RXDU : in STD_LOGIC_VECTOR (7 downto 0); -- receive data bus from the underlying layer
     RXER : out STD_LOGIC; -- receive data error
+    RXEOP: out STD_LOGIC; -- End of a packet
     MDIO_Busy : in STD_LOGIC; -- MDIO busy signal
     MDIO_nWR : out STD_LOGIC; -- MDIO writing control, active low
     MDIO_nRD : out STD_LOGIC; -- MDIO reading control, active low
@@ -50,7 +51,8 @@ entity MAC is
     WrU: in STD_LOGIC; -- Write pulse from MII
     SELT : in STD_LOGIC; -- Protocol selection via collector during transmission, 0 for IP, 1 for ARP
     SELR : out STD_LOGIC; -- Protocol selection via dispatcher during receiving, 0 for IP, 1 for ARP
-    TXCLK_f : in std_logic -- falling edge of TXCLK
+    TXCLK_f : in std_logic; -- falling edge of TXCLK
+    RXCLK_f : in std_logic
   );
 end MAC;
 
@@ -70,7 +72,7 @@ architecture Behavioral of MAC is
   signal RX_state: RX_states := Idle;
   signal TX_counter: integer range 0 to 256;
   signal RX_counter: integer range 0 to 256;
-  signal RX_interpacket_counter: integer range 0 to 7;
+  signal RX_interpacket_counter: integer range 0 to 15;
   signal counter: integer := 0; -- general use counter
   -- Dispatcher and Collecotr selection signal
   type client is (IP, ARP);
@@ -406,94 +408,6 @@ begin
               end if;
             end if;
         end case;
-
-        ---- RX direction
-        ---- FCS computed, the RX_VALID represents whether error detected
-        --case RX_state is
-        --  when Idle =>
-        --    RX_LOAD_INIT <= '1';
-        --    if (WrU = '1') then -- new packet incoming
-        --      RX_counter <= 0;
-        --      RX_state <= Preamble;
-        --      WrC <= '0';
-        --      RX_LOAD_INIT <= '0';
-        --    end if;
-
-        --  when Preamble =>
-        --    if (WrU = '1') then
-        --      if (RX_counter = 13) then
-        --        if (RXDU = X"00") then
-        --          RX_client <= IP;
-        --        else
-        --          RX_client <= ARP;
-        --        end if;
-        --        RX_state <= Payload;
-        --        RX_interpacket_counter <= 0;
-        --        RX_counter <= 0;
-        --        RX_D_VALID <= '1';
-        --        RX_CALC <= '1';
-        --      else
-        --        RX_counter <= RX_counter + 1;
-        --        RX_D_VALID <= '1';
-        --        RX_CALC <= '1';
-        --      end if;
-        --    else
-        --      RX_D_VALID <= '0';
-        --      RX_CALC <= '0';
-        --    end if;
-
-        --  when Payload =>
-        --    if (WrU = '1') then
-        --      RX_interpacket_counter <= 0;
-        --      RX_counter <= RX_counter + 1;
-        --      RX_register <= RXDU;
-        --      RX_D_VALID <= '1';
-        --      RX_CALC <= '1';
-        --      WrC <= '1';
-        --    else
-        --      WrC <= '0';
-        --      RX_D_VALID <= '0';
-        --      RX_CALC <= '0';
-
-        --      if (RX_interpacket_counter = 7) then
-        --        RX_counter <= 0;
-        --        WrC <= '0';
-        --        RX_D_VALID <= '1';
-        --        RX_CALC <= '1';
-        --        RX_state <= FCS;
-        --      elsif (TXCLK_f = '1') then
-        --        RX_interpacket_counter <= RX_interpacket_counter + 1;
-        --      end if;
-        --    end if;
-
-        --  when FCS =>
-        --    if (WrU = '1') then
-        --      WrC <= '0';
-        --      if (RX_counter = 3) then
-        --        RX_counter <= 0;
-        --        RX_state <= Interpacket;
-        --        ER_register <= RX_CRC_VALID;
-        --      else
-        --        RX_counter <= RX_counter + 1;
-        --        RX_D_VALID <= '1';
-        --        RX_CALC <= '1';
-        --      end if;
-        --    else
-        --      WrC <= '0';
-        --      RX_D_VALID <= '0';
-        --      RX_CALC <= '0';
-        --    end if;
-
-        --  when Interpacket =>
-        --    if (WrU = '1') then
-        --      if (RX_counter = 11) then
-        --        RX_counter <= 0;
-        --        RX_state <= Idle;
-        --      else
-        --        RX_counter <= RX_counter + 1;
-        --      end if;
-        --    end if;
-        --end case;
       end if;
     end if;
   end process;
@@ -509,7 +423,9 @@ begin
         case RX_state is
           when Idle =>
             if (WrU = '1') then
-              RX_state <= Dst;
+              if (RXDU = X"D5") then
+                RX_state <= Dst;
+              end if;
             end if;
 
           when Dst =>
@@ -546,9 +462,9 @@ begin
           when Payload =>
             if (WrU = '1') then
               RX_interpacket_counter <= 0;
-            elsif (RX_interpacket_counter = 7) then
+            elsif (RX_interpacket_counter = 10) then
               RX_state <= EOP;
-            elsif (TXCLK_f = '1') then
+            elsif (RXCLK_f = '1') then
               RX_interpacket_counter <= RX_interpacket_counter + 1;
             end if;
 
@@ -630,5 +546,7 @@ begin
       WrC <= '0';
     end if;
   end process;
+
+  RXEOP <= '1' when RX_state = EOP else '0';
 
 end Behavioral;

@@ -59,7 +59,8 @@ ARCHITECTURE behavior OF MAC_tb2 IS
          WrU : IN  std_logic;
          SELT : IN  std_logic;
          SELR : OUT  std_logic;
-      TXCLK_f : IN std_logic
+			TXCLK_f : IN std_logic;
+			RXCLK_f : IN std_logic
         );
     END COMPONENT;
     
@@ -86,6 +87,7 @@ ARCHITECTURE behavior OF MAC_tb2 IS
   signal WrC : std_logic;
   signal SELR : std_logic;
   signal TXCLK_f : std_logic;
+
   -- Clock period definitions
   constant CLK_period : time := 10 ns;
 
@@ -114,7 +116,8 @@ BEGIN
     WrU => WrU,
     SELT => SELT,
     SELR => SELR,
-    TXCLK_f => TXCLK_f
+    TXCLK_f => TXCLK_f,
+	 RXCLK_f => RXCLK_f
   );
 
   -- Clock process definitions

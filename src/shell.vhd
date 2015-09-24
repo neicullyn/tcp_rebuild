@@ -142,12 +142,14 @@ architecture Behavioral of shell is
 		TXDU : OUT std_logic_vector(7 downto 0);
 		RXDC : OUT std_logic_vector(7 downto 0);
 		RXER : OUT std_logic;
+		RXEOP: OUT std_logic;
 		MDIO_nWR : OUT std_logic;
 		MDIO_nRD : OUT std_logic;
 		RdC : OUT std_logic;
 		WrC : OUT std_logic;
 		SELR : OUT std_logic;
-		TXCLK_f : IN std_logic
+		TXCLK_f : IN std_logic;
+		RXCLK_f : IN std_logic
 		);
 	END COMPONENT;
 
@@ -166,7 +168,8 @@ architecture Behavioral of shell is
 		RX_out : OUT std_logic_vector(7 downto 0);
 		WR : OUT std_logic;
 		RD : OUT std_logic;
-		TXCLK_f : OUT std_logic
+		TXCLK_f : OUT std_logic;
+		RXCLK_f : OUT std_logic
 		);
 	END COMPONENT;
 
@@ -204,6 +207,7 @@ architecture Behavioral of shell is
 	signal MAC_RXDC : std_logic_vector(7 downto 0);
 	signal MAC_RXDU : std_logic_vector(7 downto 0);
 	signal MAC_RXER : std_logic;
+	signal MAC_RXEOP : std_logic;
 	signal MAC_RdC : std_logic;
 	signal MAC_WrC : std_logic;
 	signal MAC_RdU : std_logic;
@@ -211,6 +215,7 @@ architecture Behavioral of shell is
 	signal MAC_SELT : std_logic;
 	signal MAC_SELR : std_logic;
 	signal MAC_TXCLK_f : std_logic;
+	signal MAC_RXCLK_f : std_logic;
 
 
 	--- DEBUG
@@ -221,6 +226,10 @@ architecture Behavioral of shell is
 	signal PHY_TXEN_dummy : std_logic;
 	signal MAC_TXEN_r : std_logic;
 	signal MAC_TXEN_f : std_logic;
+
+	signal PHY_RXER_INDICATE : std_logic;
+	signal RXER_INDICATE : std_logic;
+	signal RXEOP_INDICATE : std_logic;
 begin
 
 	PHY_TXEN <= PHY_TXEN_dummy;
@@ -229,7 +238,7 @@ begin
 
 	PHY_MDIO <= MDIO_MDIO;
 	LED <= (0 => UART_DOUTV, 1 => MAC_TXEN, 2 => PHY_TXEN_dummy,
-			3 => MAC_RdU, 4 => MAC_RdC, 5 => MAC_WrU, others => '0');
+			3 => MAC_RdU, 4 => MAC_RdC, 5 => PHY_RXER_INDICATE, 6 => RXER_INDICATE, 7 => RXEOP_INDICATE, others => '0');
 
 	RAM_ADDR <= (others => '0');
 	RAM_CLK_out <= '0';
@@ -332,6 +341,7 @@ begin
 		RXDC => MAC_RXDC,
 		RXDU => MAC_RXDU,
 		RXER => MAC_RXER,
+		RXEOP => MAC_RXEOP,
 		MDIO_Busy => MDIO_Busy,
 		MDIO_nWR => MDIO_nWR,
 		MDIO_nRD => MDIO_nRD,
@@ -341,7 +351,8 @@ begin
 		WrU => MAC_WrU,
 		SELT => MAC_SELT,
 		SELR => MAC_SELR,
-		TXCLK_f => MAC_TXCLK_f
+		TXCLK_f => MAC_TXCLK_f,
+		RXCLK_f => MAC_RXCLK_f
 	);
 
 	-- MII
@@ -359,7 +370,8 @@ begin
 		RX_out => MAC_RXDU,
 		WR => MAC_WrU,
 		RD => MAC_RdU,
-		TXCLK_f => MAC_TXCLK_f
+		TXCLK_f => MAC_TXCLK_f,
+		RXCLK_f => MAC_RXCLK_f
 	);
 	MAC_SELT <= '0';
 
@@ -370,10 +382,14 @@ begin
 -- DEBUG: forward data to PHY to UART
 --	UART_DIN <= MAC_TXDU;
 --	UART_WR <= MAC_RdU;
-	UART_DIN <= MAC_RXDC;
-	UART_WR <= MAC_WrC;
+--	UART_DIN <= MAC_RXDC;
+--	UART_WR <= MAC_WrC;
 -- UART_DIN <= MAC_RXDU;
 -- UART_WR <= MAC_WrU;
+
+	UART_DIN(7 downto 4) <= X"0";
+	UART_DIN(3 downto 0) <= PHY_RXD;
+	UART_WR <= PHY_RXDV and MAC_RXCLK_f;
 
 	EdgeDetect_inst : EdgeDetect
 	port map(
@@ -383,7 +399,24 @@ begin
 					sfalling => MAC_TXEN_f
 	);
 
-
+	process (CLK, BTN(3))
+	begin
+		if (BTN(3) = '1') then
+			RXEOP_INDICATE <= '0';
+			RXER_INDICATE <= '0';
+			PHY_RXER_INDICATE <= '0';
+		elsif (rising_edge(CLK)) then
+			if (MAC_RXEOP = '1') then
+				RXEOP_INDICATE <= not RXEOP_INDICATE;
+			end if;
+			if (MAC_RXER = '1') then
+				RXER_INDICATE <= '1';
+			end if;
+			if (PHY_RXER = '1') then
+				PHY_RXER_INDICATE <= '1';
+			end if;
+		end if;
+	end process;
 
 end Behavioral;
 

@@ -17,11 +17,13 @@ architecture Behavioral of MACAddressCheck is
 begin
   process (CLK)
   begin
-    if (rising_edge(CLK) and EN = '1') then
-      for i in 0 to 4 loop
-        addr_buffer(i) <= addr_buffer(i + 1);
-      end loop;
-      addr_buffer(5) <= DIN;
+    if (rising_edge(CLK)) then
+		if (EN = '1') then
+			for i in 0 to 4 loop
+			  addr_buffer(i) <= addr_buffer(i + 1);
+			end loop;
+			addr_buffer(5) <= DIN;
+		end if;
     end if;
   end process;
   process (addr_buffer)
