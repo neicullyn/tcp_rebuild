@@ -19,6 +19,7 @@
 ----------------------------------------------------------------------------------
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
+use work.TCP_CONSTANTS.ALL;
 
 -- Uncomment the following library declaration if using
 -- arithmetic functions with Signed or Unsigned values
@@ -137,7 +138,6 @@ architecture Behavioral of shell is
 		MDIO_Busy : IN std_logic;
 		RdU : IN std_logic;
 		WrU : IN std_logic;
-		SELT : IN std_logic;
 		TXEN : OUT std_logic;
 		TXDU : OUT std_logic_vector(7 downto 0);
 		RXDC : OUT std_logic_vector(7 downto 0);
@@ -147,7 +147,8 @@ architecture Behavioral of shell is
 		MDIO_nRD : OUT std_logic;
 		RdC : OUT std_logic;
 		WrC : OUT std_logic;
-		SELR : OUT std_logic;
+		TX_PROTOCOL : in L3_PROTOCOL;
+    RX_PROTOCOL : out L3_PROTOCOL;
 		TXCLK_f : IN std_logic;
 		RXCLK_f : IN std_logic
 		);
@@ -212,8 +213,8 @@ architecture Behavioral of shell is
 	signal MAC_WrC : std_logic;
 	signal MAC_RdU : std_logic;
 	signal MAC_WrU : std_logic;
-	signal MAC_SELT : std_logic;
-	signal MAC_SELR : std_logic;
+	signal TX_L3_PROTOCOL : L3_PROTOCOL;
+	signal RX_L3_PROTOCOL : L3_PROTOCOL;
 	signal MAC_TXCLK_f : std_logic;
 	signal MAC_RXCLK_f : std_logic;
 
@@ -349,8 +350,8 @@ begin
 		WrC => MAC_WrC,
 		RdU => MAC_RdU,
 		WrU => MAC_WrU,
-		SELT => MAC_SELT,
-		SELR => MAC_SELR,
+		TX_PROTOCOL => TX_L3_PROTOCOL,
+		RX_PROTOCOL => RX_L3_PROTOCOL,
 		TXCLK_f => MAC_TXCLK_f,
 		RXCLK_f => MAC_RXCLK_f
 	);
@@ -373,7 +374,7 @@ begin
 		TXCLK_f => MAC_TXCLK_f,
 		RXCLK_f => MAC_RXCLK_f
 	);
-	MAC_SELT <= '0';
+	TX_L3_PROTOCOL <= IP;
 
 	MAC_TXDV <= UART_DOUTV;
 	MAC_TXDC <= UART_DOUT;
