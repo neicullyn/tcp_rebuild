@@ -27,6 +27,7 @@
 --------------------------------------------------------------------------------
 LIBRARY ieee;
 USE ieee.std_logic_1164.ALL;
+USE work.TCP_CONSTANTS.ALL;
  
 -- Uncomment the following library declaration if using
 -- arithmetic functions with Signed or Unsigned values
@@ -50,6 +51,7 @@ ARCHITECTURE behavior OF MAC_tb2 IS
          RXDC : OUT  std_logic_vector(7 downto 0);
          RXDU : IN  std_logic_vector(7 downto 0);
          RXER : OUT  std_logic;
+			RXEOP : OUT std_logic;
          MDIO_Busy : IN  std_logic;
          MDIO_nWR : OUT  std_logic;
          MDIO_nRD : OUT  std_logic;
@@ -57,8 +59,8 @@ ARCHITECTURE behavior OF MAC_tb2 IS
          WrC : OUT  std_logic;
          RdU : IN  std_logic;
          WrU : IN  std_logic;
-         SELT : IN  std_logic;
-         SELR : OUT  std_logic;
+			TX_PROTOCOL : in L3_PROTOCOL;
+			RX_PROTOCOL : out L3_PROTOCOL;
 			TXCLK_f : IN std_logic;
 			RXCLK_f : IN std_logic
         );
@@ -74,25 +76,26 @@ ARCHITECTURE behavior OF MAC_tb2 IS
   signal MDIO_Busy : std_logic := '0';
   signal RdU : std_logic := '0';
   signal WrU : std_logic := '0';
-  signal SELT : std_logic := '0';
+  signal TX_PROTOCOL : L3_PROTOCOL := IP;
 
   --Outputs
   signal TXEN : std_logic;
   signal TXDU : std_logic_vector(7 downto 0);
   signal RXDC : std_logic_vector(7 downto 0);
   signal RXER : std_logic;
+  signal RXEOP : std_logic;
   signal MDIO_nWR : std_logic;
   signal MDIO_nRD : std_logic;
   signal RdC : std_logic;
   signal WrC : std_logic;
-  signal SELR : std_logic;
+  signal RX_PROTOCOL : L3_PROTOCOL;
   signal TXCLK_f : std_logic;
 
   -- Clock period definitions
   constant CLK_period : time := 10 ns;
 
   type input_array is array(0 to 65) of std_logic_vector(7 downto 0);
-  constant input_data : input_array := (X"D5",X"FF",X"FF",X"FF",X"FF",X"FF",X"FF",X"48",X"48",X"48",X"48",X"48",X"48",X"08",X"00",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"00",X"99",X"73",X"7D",X"D0",X"00");
+  constant input_data : input_array := (X"D5",X"FF",X"FF",X"FF",X"FF",X"FF",X"FF",X"48",X"48",X"48",X"48",X"48",X"48",X"08",X"06",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"00",X"99",X"73",X"7D",X"D0",X"00");
 
 BEGIN
  
@@ -107,6 +110,7 @@ BEGIN
     RXDC => RXDC,
     RXDU => RXDU,
     RXER => RXER,
+	 RXEOP => RXEOP,
     MDIO_Busy => MDIO_Busy,
     MDIO_nWR => MDIO_nWR,
     MDIO_nRD => MDIO_nRD,
@@ -114,10 +118,10 @@ BEGIN
     WrC => WrC,
     RdU => RdU,
     WrU => WrU,
-    SELT => SELT,
-    SELR => SELR,
+    TX_PROTOCOL => TX_PROTOCOL,
+    RX_PROTOCOL => RX_PROTOCOL,
     TXCLK_f => TXCLK_f,
-	 RXCLK_f => RXCLK_f
+	 RXCLK_f => TXCLK_f
   );
 
   -- Clock process definitions
@@ -138,7 +142,7 @@ BEGIN
     nRST <= '0';      
     wait for CLK_period;      
     nRST <= '1';
-    SELT <= '0';
+    TX_PROTOCOL <= IP;
     TXDV <= '1';
     TXDC <= X"0B";      
     RXDU <= input_data(0); 

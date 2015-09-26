@@ -384,12 +384,12 @@ begin
 --	UART_WR <= MAC_RdU;
 --	UART_DIN <= MAC_RXDC;
 --	UART_WR <= MAC_WrC;
--- UART_DIN <= MAC_RXDU;
--- UART_WR <= MAC_WrU;
+  UART_DIN <= MAC_RXDU;
+  UART_WR <= MAC_WrU;
 
-	UART_DIN(7 downto 4) <= X"0";
-	UART_DIN(3 downto 0) <= PHY_RXD;
-	UART_WR <= PHY_RXDV and MAC_RXCLK_f;
+	--UART_DIN(7 downto 4) <= X"0";
+	--UART_DIN(3 downto 0) <= PHY_RXD;
+	--UART_WR <= PHY_RXDV and MAC_RXCLK_f;
 
 	EdgeDetect_inst : EdgeDetect
 	port map(

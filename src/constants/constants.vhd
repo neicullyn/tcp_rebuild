@@ -6,4 +6,6 @@ package TCP_CONSTANTS is
   type MAC_ADDR_TYPE is array(0 to 5) of std_logic_vector(7 downto 0);
   constant MAC_ADDR: MAC_ADDR_TYPE := (X"48",X"48",X"48",X"48",X"48",X"48");
   constant DEST_MAC_ADDR: MAC_ADDR_TYPE := (X"FF",X"FF",X"FF",X"FF",X"FF",X"FF");
+
+  type L3_PROTOCOL is (IP, ARP);
 end TCP_CONSTANTS;

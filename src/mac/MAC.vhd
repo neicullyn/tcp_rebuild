@@ -49,8 +49,8 @@ entity MAC is
     WrC: out STD_LOGIC; -- Write pulse for client layer
     RdU: in STD_LOGIC; -- Read pulse from MII
     WrU: in STD_LOGIC; -- Write pulse from MII
-    SELT : in STD_LOGIC; -- Protocol selection via collector during transmission, 0 for IP, 1 for ARP
-    SELR : out STD_LOGIC; -- Protocol selection via dispatcher during receiving, 0 for IP, 1 for ARP
+    TX_PROTOCOL : in L3_PROTOCOL; -- Protocol selection via collector during transmission, 0 for IP, 1 for ARP
+    RX_PROTOCOL : out L3_PROTOCOL; -- Protocol selection via dispatcher during receiving, 0 for IP, 1 for ARP
     TXCLK_f : in std_logic; -- falling edge of TXCLK
     RXCLK_f : in std_logic
   );
@@ -77,7 +77,7 @@ architecture Behavioral of MAC is
   -- Dispatcher and Collecotr selection signal
   type client is (IP, ARP);
 
-  signal RX_client: client := IP;
+  signal RX_client: client;
 
   -- TX and RX registers
   signal TX_register: STD_LOGIC_VECTOR(7 downto 0);
@@ -139,6 +139,10 @@ architecture Behavioral of MAC is
   signal MACAddressCheck_EN: std_logic;
   signal MACAddressCheck_AddrValid : std_logic;
 
+  -- Client selecter
+  signal EtherTypeByte0: std_logic_vector(7 downto 0);
+  signal EtherTypeByte1: std_logic_vector(7 downto 0);
+
 begin
 
   RST <= not nRST;
@@ -160,8 +164,6 @@ begin
 
   MAC_src_addr <= MAC_ADDR;   -- Modify appropriately
   MAC_dst_addr <= DEST_MAC_ADDR;
-
-  SELR <= '0' when RX_client = IP else '1';
 
   TXDU <= TX_register;
 
@@ -204,17 +206,13 @@ begin
   begin
     if (nRST = '0') then
       -- reset the system state
-      RX_client <= IP;
       TX_state <= Idle;
       --RX_state <= Idle;
       TX_counter <= 0;
       --RX_counter <= 0;
       TX_LOAD_INIT <= '0';
-      RX_LOAD_INIT <= '0';
       TX_CALC <= '0';
-      RX_CALC <= '0';
       TX_D_VALID <= '0';
-      RX_D_VALID <= '0';
       ER_register <= '0';
 
       TXEN <= '0';
@@ -317,7 +315,7 @@ begin
 
               else
                 TX_counter <= TX_counter + 1;
-                if (SELT = '0') then -- IP encapsulated
+                if (TX_PROTOCOL = IP) then -- IP encapsulated
                   TX_register <= X"00";
                   TXC_DATA <= X"00";
                 else
@@ -548,5 +546,15 @@ begin
   end process;
 
   RXEOP <= '1' when RX_state = EOP else '0';
+
+  Client_process: process (WrU, RX_state)
+  begin
+    if (RX_state = EtherType and WrU = '1') then
+      EtherTypeByte0 <= EtherTypeByte1;
+      EtherTypeByte1 <= RXDU;
+    end if;
+  end process;
+
+  RX_PROTOCOL <= ARP when (EtherTypeByte0 & EtherTypeByte1) = X"0806" else IP;
 
 end Behavioral;
