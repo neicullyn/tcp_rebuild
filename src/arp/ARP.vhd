@@ -7,9 +7,8 @@ entity ARP is
   Port (
     CLK : in  STD_LOGIC;  -- global clock
     nRST: in  STD_LOGIC;  -- global reset, active low
-    TXDV: in  STD_LOGIC; -- transmiision data ready from client layer
-    TXEN: out STD_LOGIC; -- transmission data ready for underlying layer (MAC)
 
+    TXEN: out STD_LOGIC; -- transmission data ready for underlying layer (MAC)
     TXDU: out  STD_LOGIC_VECTOR (7 downto 0); -- transmission data bus to underlying layer
     TXIDLE: out STD_LOGIC;
 
@@ -33,7 +32,7 @@ end ARP;
 architecture Behavioral of ARP is
   -- ARP states and counters
   type TX_states is (Idle, Request);
-  type RX_states is (Header, SHA, SPA, THA, TPA, WaitForEOP, EOP);
+  type RX_states is (Header, SHA, SPA, THA, TPA, WaitForEOP, EOP, ERR);
 
   signal TX_state: TX_states;
   signal RX_state: RX_states;
@@ -69,7 +68,7 @@ begin
   request_data(8 to 13) <= (MAC_ADDR(0), MAC_ADDR(1), MAC_ADDR(2), MAC_ADDR(3), MAC_ADDR(4), MAC_ADDR(5));
   request_data(14 to 17) <= (IP_ADDR(0), IP_ADDR(1), IP_ADDR(2), IP_ADDR(3));
   request_data(18 to 23) <= (X"00", X"00", X"00", X"00", X"00", X"00");
-  request_data(24 to 27) <= (X"00", X"00", X"00", X"00");
+  request_data(24 to 27) <= (RequestIP_buf(0), RequestIP_buf(1), RequestIP_buf(2), RequestIP_buf(3));
 
   response_header(0 to 7) <= (X"00", X"01", X"08", X"00", X"06", X"04", X"00", X"02");
 
@@ -119,67 +118,75 @@ begin
       RX_state <= Header;
       RX_counter <= 0;
     elsif (rising_edge(CLK)) then
-      case RX_state is
-        when Header =>
-          if (WrU = '1') then
-            if (RX_counter = 7) then
-              RX_state <= SHA;
-              RX_counter <= 0;
-            else
-              RX_counter <= RX_counter + 1;
+      if (RXER = '1' and RXEOP = '1') then
+        RX_state <= ERR;
+      else
+        case RX_state is
+          when Header =>
+            if (WrU = '1') then
+              if (RX_counter = 7) then
+                RX_state <= SHA;
+                RX_counter <= 0;
+              else
+                RX_counter <= RX_counter + 1;
+              end if;
             end if;
-          end if;
 
-        when SHA =>
-          if (WrU = '1') then
-            if (RX_counter = 5) then
-              RX_state <= SPA;
-              RX_counter <= 0;
-            else
-              RX_counter <= RX_counter;
+          when SHA =>
+            if (WrU = '1') then
+              if (RX_counter = 5) then
+                RX_state <= SPA;
+                RX_counter <= 0;
+              else
+                RX_counter <= RX_counter + 1;
+              end if;
             end if;
-          end if;
 
-        when SPA =>
-          if (WrU = '1') then
-            if (RX_counter = 3) then
-              RX_state <= THA;
-              RX_counter <= 0;
-            else
-              RX_counter <= RX_counter;
+          when SPA =>
+            if (WrU = '1') then
+              if (RX_counter = 3) then
+                RX_state <= THA;
+                RX_counter <= 0;
+              else
+                RX_counter <= RX_counter + 1;
+              end if;
             end if;
-          end if;
 
-        when THA =>
-          if (WrU = '1') then
-            if (RX_counter = 5) then
-              RX_state <= TPA;
-              RX_counter <= 0;
-            else
-              RX_counter <= RX_counter;
+          when THA =>
+            if (WrU = '1') then
+              if (RX_counter = 5) then
+                RX_state <= TPA;
+                RX_counter <= 0;
+              else
+                RX_counter <= RX_counter + 1;
+              end if;
             end if;
-          end if;
 
-        when TPA =>
-          if (WrU = '1') then
-            if (RX_counter = 3) then
-              RX_state <= WaitForEOP;
-              RX_counter <= 0;
-            else
-              RX_counter <= RX_counter;
+          when TPA =>
+            if (WrU = '1') then
+              if (RX_counter = 3) then
+                RX_state <= WaitForEOP;
+                RX_counter <= 0;
+              else
+                RX_counter <= RX_counter + 1;
+              end if;
             end if;
-          end if;
 
-        when WaitForEOP =>
-          if (RXEOP = '1') then
-            RX_state <= EOP;
+          when WaitForEOP =>
+            if (RXEOP = '1') then
+              RX_state <= EOP;
+              RX_counter <= 0;
+            end if;
+
+          when EOP =>
+            RX_state <= Header;
             RX_counter <= 0;
-          end if;
 
-        when EOP =>
-          RX_state <= Header;
-          RX_counter <= 0;
-      end case;
+          when ERR =>
+            RX_state <= Header;
+            RX_counter <= 0;
+        end case;
+      end if;
     end if;
   end process;
 
