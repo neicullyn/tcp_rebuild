@@ -49,6 +49,7 @@ ARCHITECTURE behavior OF MAC_tb2 IS
          TXDC : IN  std_logic_vector(7 downto 0);
          TXDU : OUT  std_logic_vector(7 downto 0);
 			TXIDLE : out STD_LOGIC;
+			DST_MAC_ADDR: IN MAC_ADDR_TYPE;
          RXDC : OUT  std_logic_vector(7 downto 0);
          RXDU : IN  std_logic_vector(7 downto 0);
          RXER : OUT  std_logic;
@@ -96,8 +97,8 @@ ARCHITECTURE behavior OF MAC_tb2 IS
   -- Clock period definitions
   constant CLK_period : time := 10 ns;
 
-  type input_array is array(0 to 65) of std_logic_vector(7 downto 0);
-  constant input_data : input_array := (X"D5",X"FF",X"FF",X"FF",X"FF",X"FF",X"FF",X"48",X"48",X"48",X"48",X"48",X"48",X"08",X"06",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"38",X"00",X"99",X"73",X"7D",X"D0",X"00");
+  type input_array is array(0 to 64) of std_logic_vector(7 downto 0);
+  constant input_data : input_array := (X"D5",X"FF",X"FF",X"FF",X"FF",X"FF",X"FF",X"48",X"48",X"48",X"48",X"48",X"48",X"08",X"06",X"00",X"01",X"08",X"00",X"06",X"04",X"00",X"01",X"44",X"44",X"44",X"44",X"44",X"44",X"C0",X"A8",X"01",X"03",X"44",X"44",X"44",X"44",X"44",X"44",X"C0",X"A8",X"01",X"07",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"71",X"D5",X"AC",X"26");
 
 BEGIN
  
@@ -110,6 +111,7 @@ BEGIN
     TXDC => TXDC,
     TXDU => TXDU,
 	 TXIDLE => TXIDLE,
+	 DST_MAC_ADDR => MAC_ADDR,
     RXDC => RXDC,
     RXDU => RXDU,
     RXER => RXER,
@@ -166,7 +168,7 @@ BEGIN
 	 
     wait for CLK_period; 
 	 
-    for i in 0 to 64 loop  
+    for i in 0 to 63 loop  
       TXCLK_f <= '1';
       RdU <= '1';
       WrU <= '1';    

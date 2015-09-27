@@ -87,7 +87,7 @@ ARCHITECTURE behavior OF ARP_tb IS
    signal ResponseValid: std_logic;
 	
 	type data_type is array (0 to 27) of std_logic_vector(7 downto 0);
-	signal data: data_type := (X"00",X"01",X"08",X"00",X"06",X"04",X"00",X"02",X"44",X"44",X"44",X"44",X"44",X"44",X"c0",X"a8",X"01",X"03",X"44",X"44",X"44",X"44",X"44",X"44",X"c0",X"a8",X"01",X"03");
+	signal data: data_type := (X"00",X"01",X"08",X"00",X"06",X"04",X"00",X"01",X"44",X"44",X"44",X"44",X"44",X"44",X"c0",X"a8",X"01",X"03",X"44",X"44",X"44",X"44",X"44",X"44",X"c0",X"a8",X"01",X"07");
 
    -- Clock period definitions
    constant CLK_period : time := 10 ns;

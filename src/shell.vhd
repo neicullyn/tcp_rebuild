@@ -130,28 +130,30 @@ architecture Behavioral of shell is
 
 	COMPONENT MAC
 	PORT(
-		CLK : IN std_logic;
-		nRST : IN std_logic;
-		TXDV : IN std_logic;
-		TXDC : IN std_logic_vector(7 downto 0);
-		RXDU : IN std_logic_vector(7 downto 0);
-		MDIO_Busy : IN std_logic;
-		RdU : IN std_logic;
-		WrU : IN std_logic;
-		TXEN : OUT std_logic;
-		TXDU : OUT std_logic_vector(7 downto 0);
-		RXDC : OUT std_logic_vector(7 downto 0);
-		RXER : OUT std_logic;
-		RXEOP: OUT std_logic;
-		MDIO_nWR : OUT std_logic;
-		MDIO_nRD : OUT std_logic;
-		RdC : OUT std_logic;
-		WrC : OUT std_logic;
-		TX_PROTOCOL : in L3_PROTOCOL;
-    RX_PROTOCOL : out L3_PROTOCOL;
-		TXCLK_f : IN std_logic;
-		RXCLK_f : IN std_logic
-		);
+    CLK : in STD_LOGIC;  -- global clock
+    nRST : in STD_LOGIC;  -- global reset, active low
+    TXDV : in STD_LOGIC; -- transmiision data ready from client layer
+    TXEN : out STD_LOGIC; -- transmission data ready for underlying layer (MII)
+    TXDC : in STD_LOGIC_VECTOR (7 downto 0); -- transmission data bus from client layer via collector
+    TXDU : out STD_LOGIC_VECTOR (7 downto 0); -- transmission data bus to underlying layer
+    TXIDLE : out STD_LOGIC; -- TX is idle
+    DST_MAC_ADDR : in MAC_ADDR_TYPE;
+    RXDC : out STD_LOGIC_VECTOR (7 downto 0); -- receive data bus to client layer via dispatcher
+    RXDU : in STD_LOGIC_VECTOR (7 downto 0); -- receive data bus from the underlying layer
+    RXER : out STD_LOGIC; -- receive data error
+    RXEOP: out STD_LOGIC; -- End of a packet
+    MDIO_Busy : in STD_LOGIC; -- MDIO busy signal
+    MDIO_nWR : out STD_LOGIC; -- MDIO writing control, active low
+    MDIO_nRD : out STD_LOGIC; -- MDIO reading control, active low
+    RdC: out STD_LOGIC; -- Read pulse for client layer
+    WrC: out STD_LOGIC; -- Write pulse for client layer
+    RdU: in STD_LOGIC; -- Read pulse from MII
+    WrU: in STD_LOGIC; -- Write pulse from MII
+    TX_PROTOCOL : in L3_PROTOCOL; -- Protocol selection via collector during transmission, 0 for IP, 1 for ARP
+    RX_PROTOCOL : out L3_PROTOCOL; -- Protocol selection via dispatcher during receiving, 0 for IP, 1 for ARP
+    TXCLK_f : in std_logic; -- falling edge of TXCLK
+    RXCLK_f : in std_logic
+	);
 	END COMPONENT;
 
 	COMPONENT MII
@@ -174,10 +176,73 @@ architecture Behavioral of shell is
 		);
 	END COMPONENT;
 
+	COMPONENT ARP
+	Port (
+    CLK : in  STD_LOGIC;
+    nRST: in  STD_LOGIC;
 
+    TXEN: out STD_LOGIC;
+    TXDU: out  STD_LOGIC_VECTOR (7 downto 0);
+    TXIDLE: out STD_LOGIC;
+
+    RXDU: in  STD_LOGIC_VECTOR (7 downto 0);
+    RXER: in STD_LOGIC;
+    RXEOP: in STD_LOGIC;
+
+    RdU: in STD_LOGIC;
+    WrU: in STD_LOGIC;
+
+    DST_MAC_ADDR :  out MAC_ADDR_TYPE;
+    RequestIP: in IP_ADDR_TYPE;
+    RequestValid: in STD_LOGIC;
+
+    ResponseIP: out IP_ADDR_TYPE;
+    ResponseMAC: out MAC_ADDR_TYPE;
+    ResponseValid: out STD_LOGIC
+  );
+	END COMPONENT;
+
+	COMPONENT Collector_L23
+	PORT(
+		CLK : IN std_logic;
+		nRST : IN std_logic;
+		RdU : IN std_logic;
+		TXDC_ARP : IN std_logic_vector(7 downto 0);
+		TXDV_ARP : IN std_logic;
+		DST_MAC_ADDR_ARP : IN MAC_ADDR_TYPE;
+		TXDC_IP : IN std_logic_vector(7 downto 0);
+		TXDV_IP : IN std_logic;
+		DST_MAC_ADDR_IP : IN MAC_ADDR_TYPE;
+		TXDU : OUT std_logic_vector(7 downto 0);
+		TXEN : OUT std_logic;
+		DST_MAC_ADDR : OUT MAC_ADDR_TYPE;
+		TX_PROTOCOL : OUT L3_PROTOCOL;
+		RdC_ARP : OUT std_logic;
+		RdC_IP : OUT std_logic
+		);
+	END COMPONENT;
+
+	COMPONENT Dispatcher_L23
+	PORT(
+		CLK : IN std_logic;
+		nRST : IN std_logic;
+		RXDU : IN std_logic_vector(7 downto 0);
+		WrU : IN std_logic;
+		RXER : in STD_LOGIC;
+    RXEOP : in STD_LOGIC;
+		RX_PROTOCOL : IN L3_PROTOCOL;
+		RXDC_ARP : OUT std_logic_vector(7 downto 0);
+		WrC_ARP : OUT std_logic;
+		RXER_ARP : OUT std_logic;
+    RXEOP_ARP : OUT std_logic;
+		RXDC_IP : OUT std_logic_vector(7 downto 0);
+		WrC_IP : OUT std_logic;
+		RXER_IP : OUT std_logic;
+    RXEOP_IP : OUT std_logic
+	);
+	END COMPONENT;
 
 	signal nRST : std_logic;
-
 
 	-- Signal for UART
 	signal UART_DIN : std_logic_vector(7 downto 0);
@@ -205,6 +270,8 @@ architecture Behavioral of shell is
 	signal MAC_TXEN : std_logic;
 	signal MAC_TXDC : std_logic_vector(7 downto 0);
 	signal MAC_TXDU : std_logic_vector(7 downto 0);
+	signal MAC_TXIDLE : std_logic;
+	signal MAC_DST_MAC_ADDR : MAC_ADDR_TYPE;
 	signal MAC_RXDC : std_logic_vector(7 downto 0);
 	signal MAC_RXDU : std_logic_vector(7 downto 0);
 	signal MAC_RXER : std_logic;
@@ -217,6 +284,22 @@ architecture Behavioral of shell is
 	signal RX_L3_PROTOCOL : L3_PROTOCOL;
 	signal MAC_TXCLK_f : std_logic;
 	signal MAC_RXCLK_f : std_logic;
+
+	-- Signals for ARP
+	signal ARP_TXEN : std_logic;
+	signal ARP_TXDU : std_logic_vector(7 downto 0);
+	signal ARP_TXIDLE : std_logic;
+	signal ARP_RXDU: std_logic_vector(7 downto 0);
+	signal ARP_RXER: std_logic;
+	signal ARP_RXEOP: std_logic;
+	signal ARP_RdU: std_logic;
+	signal ARP_WrU: std_logic;
+	signal ARP_DST_MAC_ADDR : MAC_ADDR_TYPE;
+	signal ARP_RequestIP: IP_ADDR_TYPE;
+	signal ARP_RequestValid: std_logic;
+	signal ARP_ResponseIP: IP_ADDR_TYPE;
+	signal ARP_ResponseMAC: MAC_ADDR_TYPE;
+	signal ARP_ResponseValid: std_logic;
 
 
 	--- DEBUG
@@ -231,6 +314,7 @@ architecture Behavioral of shell is
 	signal PHY_RXER_INDICATE : std_logic;
 	signal RXER_INDICATE : std_logic;
 	signal RXEOP_INDICATE : std_logic;
+	signal RX_PROTOCOL_INDICATE: std_logic;
 begin
 
 	PHY_TXEN <= PHY_TXEN_dummy;
@@ -238,7 +322,8 @@ begin
 	SSEG_AN <= (others => '1');
 
 	PHY_MDIO <= MDIO_MDIO;
-	LED <= (0 => UART_DOUTV, 1 => MAC_TXEN, 2 => PHY_TXEN_dummy,
+	RX_PROTOCOL_INDICATE <= '1' when (RX_L3_PROTOCOL = IP) else '0';
+	LED <= (0 => UART_DOUTV, 1 => RX_PROTOCOL_INDICATE, 2 => PHY_TXEN_dummy,
 			3 => MAC_RdU, 4 => MAC_RdC, 5 => PHY_RXER_INDICATE, 6 => RXER_INDICATE, 7 => RXEOP_INDICATE, others => '0');
 
 	RAM_ADDR <= (others => '0');
@@ -320,18 +405,7 @@ begin
 		end loop;
 	end process;
 
-	-- MDIO
-  MDIO_inst: MDIO PORT MAP (
-        CLK => CLK,
-        nRST => nRST,
-        CLK_MDC => PHY_MDC,
-        data_MDIO => MDIO_MDIO,
-        busy => MDIO_busy,
-        nWR => MDIO_nWR,
-        nRD => MDIO_nRD
-      );
-
-	 --MAC
+	--MAC
 	MAC_inst: MAC PORT MAP(
 		CLK => CLK,
 		nRST => nRST,
@@ -339,6 +413,8 @@ begin
 		TXEN => MAC_TXEN,
 		TXDC => MAC_TXDC,
 		TXDU => MAC_TXDU,
+		TXIDLE => MAC_TXIDLE,
+		DST_MAC_ADDR => MAC_DST_MAC_ADDR,
 		RXDC => MAC_RXDC,
 		RXDU => MAC_RXDU,
 		RXER => MAC_RXER,
@@ -355,6 +431,17 @@ begin
 		TXCLK_f => MAC_TXCLK_f,
 		RXCLK_f => MAC_RXCLK_f
 	);
+
+	-- MDIO
+  MDIO_inst: MDIO PORT MAP (
+        CLK => CLK,
+        nRST => nRST,
+        CLK_MDC => PHY_MDC,
+        data_MDIO => MDIO_MDIO,
+        busy => MDIO_busy,
+        nWR => MDIO_nWR,
+        nRD => MDIO_nRD
+      );
 
 	-- MII
 	MII_inst: MII PORT MAP(
@@ -374,19 +461,74 @@ begin
 		TXCLK_f => MAC_TXCLK_f,
 		RXCLK_f => MAC_RXCLK_f
 	);
-	TX_L3_PROTOCOL <= IP;
 
-	MAC_TXDV <= UART_DOUTV;
-	MAC_TXDC <= UART_DOUT;
-	UART_RD <= MAC_RdC;
+	ARP_inst: ARP PORT MAP(
+		CLK => CLK,
+		nRST => nRST,
+		TXEN => ARP_TXEN,
+		TXDU => ARP_TXDU,
+		RXDU => ARP_RXDU,
+		RXER => ARP_RXER,
+		RXEOP => ARP_RXEOP,
+		RdU => ARP_RdU,
+		WrU => ARP_WrU,
+		DST_MAC_ADDR => ARP_DST_MAC_ADDR,
+		RequestIP => ARP_RequestIP,
+		RequestValid => ARP_RequestValid,
+		ResponseIP => ARP_ResponseIP,
+		ResponseMAC => ARP_ResponseMAC,
+		ResponseValid => ARP_ResponseValid
+	);
+
+	Collector_L23_inst: Collector_L23 PORT MAP(
+		CLK => CLK,
+		nRST => nRST,
+		TXDU => MAC_TXDC,
+		TXEN => MAC_TXDV,
+		DST_MAC_ADDR => MAC_DST_MAC_ADDR,
+		RdU => MAC_RdC,
+		TX_PROTOCOL => TX_L3_PROTOCOL,
+		TXDC_ARP => ARP_TXDU,
+		TXDV_ARP => ARP_TXEN,
+		DST_MAC_ADDR_ARP => ARP_DST_MAC_ADDR,
+		RdC_ARP => ARP_RdU,
+		TXDC_IP => X"00",
+		TXDV_IP => '0',
+		DST_MAC_ADDR_IP => MAC_ADDR,
+		RdC_IP => open
+	);
+
+	Dispatcher_L23_inst: Dispatcher_L23 PORT MAP(
+		CLK => CLK,
+		nRST => nRST,
+		RXDU => MAC_RXDC,
+		WrU => MAC_WrC,
+		RXER => MAC_RXER,
+		RXEOP => MAC_RXEOP,
+		RX_PROTOCOL => RX_L3_PROTOCOL,
+		RXDC_ARP => ARP_RXDU,
+		WrC_ARP => ARP_WrU,
+		RXER_ARP => ARP_RXER,
+		RXEOP_ARP => ARP_RXEOP,
+		RXDC_IP => open,
+		WrC_IP => open,
+		RXER_IP => open,
+		RXEOP_IP => open
+	);
+
+	ARP_RequestIP <= (X"C0",X"A8",X"01",X"03");
+	ARP_RequestValid <= UART_DOUTV;
+	UART_RD <= MAC_RdC and ARP_TXIDLE;
 
 -- DEBUG: forward data to PHY to UART
 --	UART_DIN <= MAC_TXDU;
 --	UART_WR <= MAC_RdU;
---	UART_DIN <= MAC_RXDC;
---	UART_WR <= MAC_WrC;
-  UART_DIN <= MAC_RXDU;
-  UART_WR <= MAC_WrU;
+	UART_DIN <= MAC_RXDC;
+	UART_WR <= MAC_WrC;
+  --UART_DIN <= MAC_RXDU;
+  --UART_WR <= MAC_WrU;
+--  UART_DIN <= ARP_RXDU;
+--  UART_WR <= ARP_WrU;
 
 	--UART_DIN(7 downto 4) <= X"0";
 	--UART_DIN(3 downto 0) <= PHY_RXD;

@@ -39,6 +39,7 @@ entity MAC is
     TXDC : in STD_LOGIC_VECTOR (7 downto 0); -- transmission data bus from client layer via collector
     TXDU : out STD_LOGIC_VECTOR (7 downto 0); -- transmission data bus to underlying layer
     TXIDLE : out STD_LOGIC; -- TX is idle
+    DST_MAC_ADDR : in MAC_ADDR_TYPE;
     RXDC : out STD_LOGIC_VECTOR (7 downto 0); -- receive data bus to client layer via dispatcher
     RXDU : in STD_LOGIC_VECTOR (7 downto 0); -- receive data bus from the underlying layer
     RXER : out STD_LOGIC; -- receive data error
@@ -58,12 +59,6 @@ entity MAC is
 end MAC;
 
 architecture Behavioral of MAC is
-  constant RX_LENGTH: integer := 100;
-  -- Addresses
-
-  signal MAC_src_addr: MAC_ADDR_TYPE;
-  signal MAC_dst_addr: MAC_ADDR_TYPE;
-
   -- MAC states and counters
   type TX_states is (Idle, Preamble, SFD, Dst, Src, EtherType, Payload, FCS, Interpacket);
     -- Preamble, SFD, Interpacket may not be transmitted
@@ -289,7 +284,7 @@ begin
         TXDU_dummy <= X"D5";
 
       when Dst =>
-        TXDU_dummy <= DEST_MAC_ADDR(TX_counter);
+        TXDU_dummy <= DST_MAC_ADDR(TX_counter);
 
       when Src =>
         TXDU_dummy <= MAC_ADDR(TX_counter);
@@ -499,11 +494,13 @@ begin
 
   RXEOP <= '1' when RX_state = EOP else '0';
 
-  Client_process: process (WrU, RX_state)
+  Client_process: process (CLK)
   begin
-    if (RX_state = EtherType and WrU = '1') then
-      EtherTypeByte0 <= EtherTypeByte1;
-      EtherTypeByte1 <= RXDU;
+    if (rising_edge(CLK)) then
+      if (RX_state = EtherType and WrU = '1') then
+        EtherTypeByte0 <= EtherTypeByte1;
+        EtherTypeByte1 <= RXDU;
+      end if;
     end if;
   end process;
 
