@@ -48,6 +48,7 @@ ARCHITECTURE behavior OF MAC_tb2 IS
          TXEN : OUT  std_logic;
          TXDC : IN  std_logic_vector(7 downto 0);
          TXDU : OUT  std_logic_vector(7 downto 0);
+			TXIDLE : out STD_LOGIC;
          RXDC : OUT  std_logic_vector(7 downto 0);
          RXDU : IN  std_logic_vector(7 downto 0);
          RXER : OUT  std_logic;
@@ -81,6 +82,7 @@ ARCHITECTURE behavior OF MAC_tb2 IS
   --Outputs
   signal TXEN : std_logic;
   signal TXDU : std_logic_vector(7 downto 0);
+  signal TXIDLE : std_logic;
   signal RXDC : std_logic_vector(7 downto 0);
   signal RXER : std_logic;
   signal RXEOP : std_logic;
@@ -107,6 +109,7 @@ BEGIN
     TXEN => TXEN,
     TXDC => TXDC,
     TXDU => TXDU,
+	 TXIDLE => TXIDLE,
     RXDC => RXDC,
     RXDU => RXDU,
     RXER => RXER,

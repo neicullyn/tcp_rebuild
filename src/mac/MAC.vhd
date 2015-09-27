@@ -38,6 +38,7 @@ entity MAC is
     TXEN : out STD_LOGIC; -- transmission data ready for underlying layer (MII)
     TXDC : in STD_LOGIC_VECTOR (7 downto 0); -- transmission data bus from client layer via collector
     TXDU : out STD_LOGIC_VECTOR (7 downto 0); -- transmission data bus to underlying layer
+    TXIDLE : out STD_LOGIC; -- TX is idle
     RXDC : out STD_LOGIC_VECTOR (7 downto 0); -- receive data bus to client layer via dispatcher
     RXDU : in STD_LOGIC_VECTOR (7 downto 0); -- receive data bus from the underlying layer
     RXER : out STD_LOGIC; -- receive data error
@@ -68,8 +69,8 @@ architecture Behavioral of MAC is
     -- Preamble, SFD, Interpacket may not be transmitted
   type RX_states is (Idle, Dst, Src, EtherType, Payload, EOP);
 
-  signal TX_state: TX_states := Idle;
-  signal RX_state: RX_states := Idle;
+  signal TX_state: TX_states;
+  signal RX_state: RX_states;
   signal TX_counter: integer range 0 to 256;
   signal RX_counter: integer range 0 to 256;
   signal RX_interpacket_counter: integer range 0 to 15;
@@ -271,6 +272,8 @@ begin
       RdC <= '1';
     end if;
   end process;
+
+  TXIDLE <= '1' when TX_state = Idle else '0';
 
   TXDU <= TXDU_dummy;
   TX_DATA: process (TX_state, TX_counter, TXCRC_CRC)
