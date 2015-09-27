@@ -205,6 +205,94 @@ BEGIN
 		wait for CLOCK_period * 4;
 		
 		
+		
+		wait for CLOCK_period*10;
+		
+		RESET <= '1';
+		
+		wait for CLOCK_period;
+		
+		RESET <= '0';
+		
+		wait for CLOCK_period;
+		
+		LOAD_INIT <= '1';
+		
+		wait for CLOCK_period;
+		
+		LOAD_INIT <= '0';
+		
+		wait for CLOCK_period;
+		
+		DATA <= X"FF";
+		
+		D_VALID <= '1';
+		CALC <= '1';
+		
+		wait for CLOCK_period;
+		
+		DATA <= X"FF";
+		wait for CLOCK_period;
+		
+		DATA <= X"FF";
+		
+		wait for CLOCK_period;
+		
+		DATA <= X"FF";
+		
+		wait for CLOCK_period;
+		
+		DATA <= X"FF";
+		
+		wait for CLOCK_period;
+		
+		DATA <= X"FF";
+		
+		wait for CLOCK_period;
+		
+		DATA <= X"48";
+		
+		wait for CLOCK_period;
+		
+		DATA <= X"48";
+		
+		wait for CLOCK_period;
+		
+		DATA <= X"48";
+		
+		wait for CLOCK_period;
+		
+		DATA <= X"48";
+		
+		wait for CLOCK_period;
+		
+		DATA <= X"48";
+		
+		wait for CLOCK_period;
+		
+		DATA <= X"48";
+		
+		wait for CLOCK_period;
+		
+		DATA <= X"08";
+		
+		wait for CLOCK_period;
+		
+		DATA <= X"00";
+		
+		wait for CLOCK_period;
+		
+		DATA <= X"0b";
+		
+		wait for CLOCK_period;
+
+		-- Get CRC
+
+		CALC <= '0';
+		
+		wait for CLOCK_period * 4;
+		
+		
 --		
 --		DATA <= CRC_REG(31 downto 24);
 --		

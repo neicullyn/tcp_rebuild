@@ -8,4 +8,10 @@ package TCP_CONSTANTS is
   constant DEST_MAC_ADDR: MAC_ADDR_TYPE := (X"FF",X"FF",X"FF",X"FF",X"FF",X"FF");
 
   type L3_PROTOCOL is (IP, ARP);
+  type ETHERTYPE_CODE_TYPE is array(0 to 1) of std_logic_vector(7 downto 0);
+  constant IP_ETHERTYPE_CODE: ETHERTYPE_CODE_TYPE := (X"08", X"00");
+  constant ARP_ETHERTYPE_CODE: ETHERTYPE_CODE_TYPE := (X"08", X"06");
+
+
+
 end TCP_CONSTANTS;

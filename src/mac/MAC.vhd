@@ -64,7 +64,7 @@ architecture Behavioral of MAC is
   signal MAC_dst_addr: MAC_ADDR_TYPE;
 
   -- MAC states and counters
-  type TX_states is (Idle, Preamble, SFD, MAC_dst, MAC_src, EtherType, Payload, FCS, Interpacket);
+  type TX_states is (Idle, Preamble, SFD, Dst, Src, EtherType, Payload, FCS, Interpacket);
     -- Preamble, SFD, Interpacket may not be transmitted
   type RX_states is (Idle, Dst, Src, EtherType, Payload, EOP);
 
@@ -75,16 +75,8 @@ architecture Behavioral of MAC is
   signal RX_interpacket_counter: integer range 0 to 15;
   signal counter: integer := 0; -- general use counter
   -- Dispatcher and Collecotr selection signal
-  type client is (IP, ARP);
 
-  signal RX_client: client;
-
-  -- TX and RX registers
-  signal TX_register: STD_LOGIC_VECTOR(7 downto 0);
-  signal RX_register: STD_LOGIC_VECTOR(7 downto 0);
-
-  -- RXER register
-  signal ER_register: STD_LOGIC;
+  signal TXDU_dummy: std_logic_vector(7 downto 0);
 
   -- Make sure MDIO is configured already
   type status is (PowerOn, Configuring, Waiting, Ready);
@@ -107,19 +99,11 @@ architecture Behavioral of MAC is
 
   -- CRC signals
   signal RST: STD_LOGIC;
-  signal TXC_DATA: STD_LOGIC_VECTOR(7 downto 0);
-  signal RXC_DATA: STD_LOGIC_VECTOR(7 downto 0);
-  signal TX_LOAD_INIT: STD_LOGIC;
-  signal RX_LOAD_INIT: STD_LOGIC;
-  signal TX_CALC: STD_LOGIC;
-  signal RX_CALC: STD_LOGIC;
-  signal TX_D_VALID: STD_LOGIC;
-  signal RX_D_VALID: STD_LOGIC;
-  signal TX_CRC: STD_LOGIC_VECTOR(7 downto 0);
-  signal RX_CRC: STD_LOGIC_VECTOR(7 downto 0);
-  signal TX_CRC_REG: STD_LOGIC_VECTOR(31 downto 0);
-  signal TX_CRC_VALID: STD_LOGIC;
-  signal RX_CRC_VALID: STD_LOGIC;
+
+  signal TXCRC_LOAD_INIT : std_logic;
+  signal TXCRC_CALC : std_logic;
+  signal TXCRC_D_VALID : std_logic;
+  signal TXCRC_CRC: STD_LOGIC_VECTOR(7 downto 0);
 
   signal RXCRC_LOAD_INIT : std_logic;
   signal RXCRC_CALC : std_logic;
@@ -144,31 +128,9 @@ architecture Behavioral of MAC is
   signal EtherTypeByte1: std_logic_vector(7 downto 0);
 
 begin
-
   RST <= not nRST;
 
-  TXCRC: CRC
-  port map(
-    CLOCK  => CLK,
-    RESET => RST,
-    DATA => TXC_DATA,
-    LOAD_INIT => TX_LOAD_INIT,
-    CALC => TX_CALC,
-    D_VALID => TX_D_VALID,
-    CRC => TX_CRC,
-    CRC_REG => TX_CRC_REG,
-    CRC_VALID => TX_CRC_VALID
-  );
-
-
-
-  MAC_src_addr <= MAC_ADDR;   -- Modify appropriately
-  MAC_dst_addr <= DEST_MAC_ADDR;
-
-  TXDU <= TX_register;
-
-  RXC_DATA <= RXDU;
-
+  --TXDU <= TX_register;
   MDIO_conf: process(nRST, CLK)
   begin
     if (nRST = '0') then
@@ -200,44 +162,25 @@ begin
     end if;
   end process;
 
-
-  -- Main process
-  process(nRST, CLK, TXDV, RdU, WrU)
+  TX_SM: process (CLK, nRST)
   begin
     if (nRST = '0') then
-      -- reset the system state
       TX_state <= Idle;
-      --RX_state <= Idle;
       TX_counter <= 0;
-      --RX_counter <= 0;
-      TX_LOAD_INIT <= '0';
-      TX_CALC <= '0';
-      TX_D_VALID <= '0';
-      ER_register <= '0';
-
-      TXEN <= '0';
-      RdC <= '0';
-    elsif (Sys_status = Ready) then
-      if (rising_edge(CLK)) then  -- system triggered by rising edge, modify when necessary
-        -- TX direction
-        -- CRC only calculated starting from MAC_dst
+    elsif (rising_edge(CLK)) then
+      if (Sys_status = Ready) then
         case TX_state is
           when Idle =>
             if (TXDV = '1') then
-              TX_register <= X"55"; -- 10101010, TX_register(7) corresponds MSB
               TX_state <= Preamble;
-              RdC <= '0';
-              TXEN <= '1';
               TX_counter <= 0;
             end if;
 
           when Preamble =>
-            if (RdU = '1') then  -- current data in the register has been handled
+            if (RdU = '1') then
               if (TX_counter = 6) then
-                TX_register <= X"D5"; -- 10101011
                 TX_state <= SFD;
                 TX_counter <= 0;
-                TX_LOAD_INIT <= '1';
               else
                 TX_counter <= TX_counter + 1;
               end if;
@@ -245,154 +188,60 @@ begin
 
           when SFD =>
             if (RdU = '1') then
+              TX_state <= Dst;
               TX_counter <= 0;
-              TX_register <= MAC_dst_addr(0);
-
-              TXC_DATA <= MAC_dst_addr(0);
-              TX_LOAD_INIT <= '0';
-              TX_D_VALID <= '1';
-              TX_CALC <= '1';
-
-              TX_state <= MAC_dst;
-            else
-              TX_LOAD_INIT <= '0';
-              TX_D_VALID <= '0';
-              TX_CALC <= '0';
             end if;
 
-          when MAC_dst =>
+          when Dst =>
             if (RdU = '1') then
               if (TX_counter = 5) then
+                TX_state <= Src;
                 TX_counter <= 0;
-                TX_register <= MAC_src_addr(0);
-                TXC_DATA <= MAC_src_addr(0);
-                TX_D_VALID <= '1';
-                TX_CALC <= '1';
-                TX_state <= MAC_src;
               else
                 TX_counter <= TX_counter + 1;
-                TX_register <= MAC_dst_addr(TX_counter + 1);
-                TXC_DATA <= MAC_dst_addr(TX_counter + 1);
-                TX_D_VALID <= '1';
-                TX_CALC <= '1';
               end if;
-            else
-              TX_D_VALID <= '0';
-              TX_CALC <= '0';
             end if;
 
-          when MAC_src =>
+          when Src =>
             if (RdU = '1') then
               if (TX_counter = 5) then
-                TX_counter <= 0;
-                TX_register <= X"08"; -- IP: X"0800", ARP: X"0806"
-                TXC_DATA <= X"08";
-                TX_D_VALID <= '1';
-                TX_CALC <= '1';
                 TX_state <= EtherType;
+                TX_counter <= 0;
               else
                 TX_counter <= TX_counter + 1;
-                TX_register <= MAC_src_addr(TX_counter + 1);
-                TXC_DATA <= MAC_src_addr(TX_counter + 1);
-                TX_D_VALID <= '1';
-                TX_CALC <= '1';
               end if;
-            else
-              TX_D_VALID <= '0';
-              TX_CALC <= '0';
             end if;
 
           when EtherType =>
             if (RdU = '1') then
               if (TX_counter = 1) then
-                TX_counter <= 0;
-                TX_register <= TXDC; -- Latch data to the register
-                TXC_DATA <= TXDC;
-                TX_D_VALID <= '1';
-                TX_CALC <= '1';
-                RdC <= '1';
                 TX_state <= Payload;
-
+                TX_counter <= 0;
               else
                 TX_counter <= TX_counter + 1;
-                if (TX_PROTOCOL = IP) then -- IP encapsulated
-                  TX_register <= X"00";
-                  TXC_DATA <= X"00";
-                else
-                  TX_register <= X"06";
-                  TXC_DATA <= X"00";
-                end if;
-                TX_D_VALID <= '1';
-                TX_CALC <= '1';
               end if;
-            else
-              TX_D_VALID <= '0';
-              TX_CALC <= '0';
             end if;
 
           when Payload =>
-
-            if (TXDV = '1' or TX_counter < 45) then -- Frame not finished
+            if (TXDV = '1' or TX_counter < 45) then
               if (RdU = '1') then
                 TX_counter <= TX_counter + 1;
-                if(TXDV = '0') then
-                  -- Add padding
-                  TX_register <= x"00";
-                  TXC_DATA <= x"00";
-                  TX_D_VALID <= '1';
-                  TX_CALC <= '1';
-
-                else
-                  TX_register <= TXDC;
-                  TXC_DATA <= TXDC;
-                  TX_D_VALID <= '1';
-                  TX_CALC <= '1';
-                  RdC <= '1';
-                end if;
-              else
-                RdC <= '0';
-                TX_D_VALID <= '0';
-                TX_CALC <= '0';
               end if;
-
-
-            else  -- Frame finished
+            else
               if (RdU = '1') then
-                TX_D_VALID <= '1';
-                TX_CALC <= '0';
-
-                for i in 0 to 7 loop
-                  TX_register(i) <= TX_CRC(i);
-                end loop;
                 TX_state <= FCS;
                 TX_counter <= 0;
-                RdC <= '0';
-              else
-                TX_D_VALID <= '0';
-                TX_CALC <= '0';
-                RdC <= '0';
               end if;
             end if;
 
           when FCS =>
             if (RdU = '1') then
               if (TX_counter = 3) then
-                TX_register <= TX_CRC;
                 TX_state <= Interpacket;
                 TX_counter <= 0;
-
-                TXEN <= '0';
               else
                 TX_counter <= TX_counter + 1;
-                TX_D_VALID <= '1';
-                TX_CALC <= '0';
-
-                for i in 0 to 7 loop
-                  TX_register(i) <= TX_CRC(i);
-                end loop;
               end if;
-            else
-              TX_D_VALID <= '0';
             end if;
 
           when Interpacket =>
@@ -400,13 +249,113 @@ begin
               if (TX_counter = 11) then
                 TX_state <= Idle;
                 TX_counter <= 0;
-                TXEN <= '0';
               else
                 TX_counter <= TX_counter + 1;
               end if;
             end if;
+
         end case;
       end if;
+    end if;
+  end process;
+
+  TX_EN: process (TX_state, TXDV, RdU)
+  begin
+    TXEN <= '1';
+    if (TX_state = Idle or TX_state = Interpacket) then
+      TXEN <= '0';
+    end if;
+
+    RdC <= '0';
+    if (TX_state = Payload and TXDV = '1' and RdU = '1') then
+      RdC <= '1';
+    end if;
+  end process;
+
+  TXDU <= TXDU_dummy;
+  TX_DATA: process (TX_state, TX_counter, TXCRC_CRC)
+  begin
+    case TX_state is
+      when Idle =>
+        TXDU_dummy <= X"00";
+
+      when Preamble =>
+        TXDU_dummy <= X"55";
+
+      when SFD =>
+        TXDU_dummy <= X"D5";
+
+      when Dst =>
+        TXDU_dummy <= DEST_MAC_ADDR(TX_counter);
+
+      when Src =>
+        TXDU_dummy <= MAC_ADDR(TX_counter);
+
+      when EtherType =>
+        case TX_PROTOCOL is
+          when IP =>
+            TXDU_dummy <= IP_ETHERTYPE_CODE(TX_counter);
+          when ARP =>
+            TXDU_dummy <= ARP_ETHERTYPE_CODE(TX_counter);
+        end case;
+
+      when Payload =>
+        if (TXDV = '1') then
+          TXDU_dummy <= TXDC;
+        else
+          TXDU_dummy <= X"00";
+        end if;
+
+      when FCS =>
+        TXDU_dummy <= TXCRC_CRC;
+
+      when Interpacket =>
+        TXDU_dummy <= X"00";
+    end case;
+  end process;
+
+  TXCRC: CRC
+  port map(
+    CLOCK  => CLK,
+    RESET => RST,
+    DATA => TXDU_dummy,
+    LOAD_INIT => TXCRC_LOAD_INIT,
+    CALC => TXCRC_CALC,
+    D_VALID => TXCRC_D_VALID,
+    CRC => TXCRC_CRC,
+    CRC_REG => open,
+    CRC_VALID => open
+  );
+
+  TXCRC_control: process (TXDV, RdU, TX_state)
+  begin
+    if (TXDV = '1' and TX_state = Idle) then
+      TXCRC_LOAD_INIT <= '1';
+    else
+      TXCRC_LOAD_INIT <= '0';
+    end if;
+
+    if (RdU = '1' and
+      (
+        TX_state = Dst or TX_state = Src or
+        TX_state = EtherType or TX_state = Payload or
+        TX_state = FCS
+      )
+    ) then
+      TXCRC_D_VALID <= '1';
+    else
+      TXCRC_D_VALID <= '0';
+    end if;
+
+    if (RdU = '1' and
+      (
+        TX_state = Dst or TX_state = Src or
+        TX_state = EtherType or TX_state = Payload
+      )
+    ) then
+      TXCRC_CALC <= '1';
+    else
+      TXCRC_CALC <= '0';
     end if;
   end process;
 

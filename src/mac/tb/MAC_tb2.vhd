@@ -133,6 +133,20 @@ BEGIN
     wait for CLK_period/2;
   end process; 
   -- Stimulus process
+  
+  tx_stim_proc: process
+  begin
+	TXDC <= X"0B";
+	TXDV <= '1';
+	
+	wait until RdC = '1';
+	
+	TXDC <= X"00";
+	TXDV <= '0';
+	
+	wait;
+  end process;
+  
   stim_proc: process
   begin    
     -- hold reset state for 100 ns.
@@ -143,11 +157,12 @@ BEGIN
     wait for CLK_period;      
     nRST <= '1';
     TX_PROTOCOL <= IP;
-    TXDV <= '1';
-    TXDC <= X"0B";      
+  
     RXDU <= input_data(0); 
     wait for 50 * CLK_period;   
-    wait for CLK_period;      
+	 
+    wait for CLK_period; 
+	 
     for i in 0 to 64 loop  
       TXCLK_f <= '1';
       RdU <= '1';
@@ -156,7 +171,6 @@ BEGIN
       TXCLK_f <= '0';
       RdU <= '0';
       WrU <= '0';
-      TXDV <= '0';
       wait for CLK_period;      
       RXDU <= input_data(i + 1);   
       wait for CLK_period * 38;
@@ -164,7 +178,9 @@ BEGIN
 
     for i in 0 to 16 loop  
       TXCLK_f <= '1';
+		RdU <= '1';
       wait for CLK_period;
+		RdU <= '0';
       TXCLK_f <= '0';
       wait for CLK_period * 39;
     end loop;
