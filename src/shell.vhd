@@ -315,6 +315,8 @@ architecture Behavioral of shell is
 	signal RXER_INDICATE : std_logic;
 	signal RXEOP_INDICATE : std_logic;
 	signal RX_PROTOCOL_INDICATE: std_logic;
+	signal VAIO_ADDR_GOOD_INDICATE: std_logic;
+	signal ARP_RXEOP_INDICATE : std_logic;
 begin
 
 	PHY_TXEN <= PHY_TXEN_dummy;
@@ -323,8 +325,30 @@ begin
 
 	PHY_MDIO <= MDIO_MDIO;
 	RX_PROTOCOL_INDICATE <= '1' when (RX_L3_PROTOCOL = IP) else '0';
-	LED <= (0 => UART_DOUTV, 1 => RX_PROTOCOL_INDICATE, 2 => PHY_TXEN_dummy,
-			3 => MAC_RdU, 4 => MAC_RdC, 5 => PHY_RXER_INDICATE, 6 => RXER_INDICATE, 7 => RXEOP_INDICATE, others => '0');
+
+	process (CLK)
+	begin
+		if (rising_edge(CLK)) then
+			if (ARP_ResponseValid = '1') then
+				if (ARP_ResponseMAC = VAIO_MAC_ADDR) then
+					VAIO_ADDR_GOOD_INDICATE <= '1';
+				else
+					VAIO_ADDR_GOOD_INDICATE <= '0';
+				end if;
+			end if;
+		end if;
+	end process;
+
+	process (CLK)
+	begin
+		if (rising_edge(CLK)) then
+			if (ARP_ResponseValid = '1') then
+				ARP_RXEOP_INDICATE <= not ARP_RXEOP_INDICATE;
+			end if;
+		end if;
+	end process;
+	LED <= (0 => UART_DOUTV, 1 => RX_PROTOCOL_INDICATE, 2 => VAIO_ADDR_GOOD_INDICATE,
+			3 => ARP_RXEOP_INDICATE, 4 => MAC_RdC, 5 => PHY_RXER_INDICATE, 6 => RXER_INDICATE, 7 => RXEOP_INDICATE, others => '0');
 
 	RAM_ADDR <= (others => '0');
 	RAM_CLK_out <= '0';
@@ -518,7 +542,7 @@ begin
 
 	ARP_RequestIP <= (X"C0",X"A8",X"01",X"03");
 	ARP_RequestValid <= UART_DOUTV;
-	UART_RD <= MAC_RdC and ARP_TXIDLE;
+	UART_RD <= not ARP_TXIDLE;
 
 -- DEBUG: forward data to PHY to UART
 --	UART_DIN <= MAC_TXDU;

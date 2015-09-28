@@ -295,6 +295,8 @@ begin
             TXDU_dummy <= IP_ETHERTYPE_CODE(TX_counter);
           when ARP =>
             TXDU_dummy <= ARP_ETHERTYPE_CODE(TX_counter);
+			 when others =>
+				TXDU_dummy <= X"00";
         end case;
 
       when Payload =>
@@ -504,6 +506,15 @@ begin
     end if;
   end process;
 
-  RX_PROTOCOL <= ARP when (EtherTypeByte0 & EtherTypeByte1) = X"0806" else IP;
+  RX_PROTOCOL_proc: process (EtherTypeByte0, EtherTypeByte1)
+  begin
+    RX_PROTOCOL <= UNKNOWN;
+    if (EtherTypeByte0 = IP_ETHERTYPE_CODE(0) and EtherTypeByte1 = IP_ETHERTYPE_CODE(1)) then
+      RX_PROTOCOL <= IP;
+    end if;
+    if (EtherTypeByte0 = ARP_ETHERTYPE_CODE(0) and EtherTypeByte1 = ARP_ETHERTYPE_CODE(1)) then
+      RX_PROTOCOL <= ARP;
+    end if;
+  end process;
 
 end Behavioral;

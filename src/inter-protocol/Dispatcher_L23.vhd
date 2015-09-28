@@ -47,6 +47,7 @@ begin
         WrC_IP <= WrU;
         RXER_IP <= RXER;
         RXEOP_IP <= RXEOP;
+      when others =>
     end case;
   end process;
 end Behavioral;

@@ -86,8 +86,8 @@ ARCHITECTURE behavior OF ARP_tb IS
    signal ResponseMAC: MAC_ADDR_TYPE;
    signal ResponseValid: std_logic;
 	
-	type data_type is array (0 to 27) of std_logic_vector(7 downto 0);
-	signal data: data_type := (X"00",X"01",X"08",X"00",X"06",X"04",X"00",X"01",X"44",X"44",X"44",X"44",X"44",X"44",X"c0",X"a8",X"01",X"03",X"44",X"44",X"44",X"44",X"44",X"44",X"c0",X"a8",X"01",X"07");
+	type data_type is array (0 to 49) of std_logic_vector(7 downto 0);
+	signal data: data_type := (X"00",X"01",X"08",X"00",X"06",X"04",X"00",X"02",X"54",X"42",X"49",X"62",X"6C",X"62",X"C0",X"A8",X"01",X"03",X"48",X"48",X"48",X"48",X"48",X"48",X"C0",X"A8",X"01",X"07",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"8E",X"90",X"26",X"5B");
 
    -- Clock period definitions
    constant CLK_period : time := 10 ns;
@@ -142,7 +142,7 @@ BEGIN
     RequestValid <= '0';
 	 RXDU <= data(0);
 	 
-	 for i in 0 to 26 loop
+	 for i in 0 to 48 loop
 		RdU <= '1';
 		WrU <= '1';
 		wait for CLK_period;

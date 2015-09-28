@@ -78,6 +78,10 @@ begin
         else
           TXEN_dummy <= '0';
         end if;
+      when others =>
+      	TXDU <= X"00";
+      	DST_MAC_ADDR <= MAC_ADDR;
+      	TXEN_dummy <= '0';
     end case;
   end process;
 
@@ -90,6 +94,7 @@ begin
         RdC_ARP <= RdU;
       when IP =>
         RdC_IP <= RdU;
+		when others =>
     end case;
   end process;
 end Behavioral;

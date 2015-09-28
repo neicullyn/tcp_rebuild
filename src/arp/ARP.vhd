@@ -49,8 +49,11 @@ architecture Behavioral of ARP is
   signal response_data : DATA_ARRAY;
 
   signal RequestIP_buf: IP_ADDR_TYPE;
-  signal ResponseIP_dummy: IP_ADDR_TYPE;
-  signal ResponseMAC_dummy: MAC_ADDR_TYPE;
+
+  signal SHA_buf: MAC_ADDR_TYPE;
+  signal SPA_buf: IP_ADDR_TYPE;
+  signal THA_buf: MAC_ADDR_TYPE;
+  signal TPA_buf: IP_ADDR_TYPE;
 
   signal TX_IS_RESPONSE: STD_LOGIC;
 
@@ -222,53 +225,69 @@ begin
     end if;
   end process;
 
-  ResponseMAC <= ResponseMAC_dummy;
-  ResponseIP <= ResponseIP_dummy;
+  ResponseMAC <= SHA_buf;
+  ResponseIP <= SPA_buf;
   RX_DATA: process (CLK)
   begin
     if (rising_edge(CLK)) then
+      if (RX_state = SHA and WrU = '1') then
+        for i in 0 to 4 loop
+          SHA_buf(i) <= SHA_buf(i + 1);
+        end loop;
+        SHA_buf(5) <= RXDU;
+      end if;
+
+      if (RX_state = SPA and WrU = '1') then
+        for i in 0 to 2 loop
+          SPA_buf(i) <= SPA_buf(i + 1);
+        end loop;
+        SPA_buf(3) <= RXDU;
+      end if;
+
       if (RX_state = THA and WrU = '1') then
         for i in 0 to 4 loop
-          ResponseMAC_dummy(i) <= ResponseMAC_dummy(i + 1);
+          THA_buf(i) <= THA_buf(i + 1);
         end loop;
-        ResponseMAC_dummy(5) <= RXDU;
+        THA_buf(5) <= RXDU;
       end if;
 
       if (RX_state = TPA and WrU = '1') then
         for i in 0 to 2 loop
-          ResponseIP_dummy(i) <= ResponseIP_dummy(i + 1);
+          TPA_buf(i) <= TPA_buf(i + 1);
         end loop;
-        ResponseIP_dummy(3) <= RXDU;
+        TPA_buf(3) <= RXDU;
       end if;
     end if;
   end process;
 
   RX_ERR: process (CLK)
   begin
-    if (RX_state = Header) then
-      if (WrU = '1') then
-        if (RX_counter = 0) then
-          if (RXDU = response_data(0)) then
-            RX_ARP_ERR <= '0';
+    if (rising_edge(CLK)) then
+      if (RX_state = Header) then
+        if (WrU = '1') then
+          if (RX_counter = 0) then
+            if (RXDU = response_data(0)) then
+              RX_ARP_ERR <= '0';
+            else
+              RX_ARP_ERR <= '1';
+            end if;
           else
-            RX_ARP_ERR <= '1';
-          end if;
-        else
-          if (RXDU /= response_data(RX_counter)) then
-            RX_ARP_ERR <= '1';
+            if (RXDU /= response_data(RX_counter)) then
+              RX_ARP_ERR <= '1';
+            end if;
           end if;
         end if;
       end if;
-    end if;
 
-    if (RX_state = WaitForEOP and RXEOP = '1') then
-      if (RXER = '1') then
-        RX_ARP_ERR <= '1';
+      if (RX_state = WaitForEOP and RXEOP = '1') then
+        if (RXER = '1') then
+          RX_ARP_ERR <= '1';
+        end if;
       end if;
     end if;
   end process;
 
-  RX_output: process (RX_state, RX_ARP_ERR)
+  RX_output: process (RX_state, RX_ARP_ERR, RX_OP0_dummy, RX_OP1_dummy)
   begin
     if (RX_ARP_ERR = '0' and RX_state = EOP and
       (RX_OP0_dummy & RX_OP1_dummy) = X"0002"
@@ -294,7 +313,7 @@ begin
     if (
       RX_state = EOP and
       (RX_OP0_dummy & RX_OP1_dummy) = X"0001" and
-      ResponseIP_dummy = IP_ADDR
+      TPA_buf = IP_ADDR
     ) then
       RX_NEED_RESPONSE_SET <= '1';
     else
