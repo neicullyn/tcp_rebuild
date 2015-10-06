@@ -20,8 +20,10 @@ entity ARP is
     WrU: in STD_LOGIC; -- Write pulse from MAC
 
     DST_MAC_ADDR :  out MAC_ADDR_TYPE;
+
     RequestIP: in IP_ADDR_TYPE;
     RequestValid: in STD_LOGIC;
+    RequestSent: out STD_LOGIC;
 
     ResponseIP: out IP_ADDR_TYPE;
     ResponseMAC: out MAC_ADDR_TYPE;
@@ -88,6 +90,7 @@ begin
     if (nRST = '0') then
       TX_state <= Idle;
       TX_counter <= 0;
+      RequestSent <= '0';
       RX_NEED_RESPONSE <= '0';
     elsif (rising_edge(CLK)) then
       if (RX_NEED_RESPONSE_SET = '1') then
@@ -95,19 +98,20 @@ begin
       end if;
       case TX_state is
         when Idle =>
-          if (RequestValid = '1') then
+          if (RX_NEED_RESPONSE = '1') then
+            TX_state <= Busy;
+            TX_IS_RESPONSE <= '1';
+            RX_NEED_RESPONSE <= '0';
+          elsif (RequestValid = '1') then
             RequestIP_buf <= RequestIP;
+            RequestSent <= '1';
             TX_state <= Busy;
             TX_IS_RESPONSE <= '0';
             TX_counter <= 0;
           end if;
 
-          if (RX_NEED_RESPONSE = '1') then
-            TX_state <= Busy;
-            TX_IS_RESPONSE <= '1';
-            RX_NEED_RESPONSE <= '0';
-          end if;
         when Busy =>
+          RequestSent <= '0';
           if (RdU = '1') then
             if (TX_counter = 27) then
               TX_state <= Idle;

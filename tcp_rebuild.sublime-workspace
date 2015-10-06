@@ -1,0 +1,673 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"Out",
+				"OutputValid"
+			],
+			[
+				"Stor",
+				"StoreIndex"
+			],
+			[
+				"Look",
+				"LookUPIndex_end"
+			],
+			[
+				"Re",
+				"Request"
+			],
+			[
+				"St",
+				"State"
+			],
+			[
+				"Requ",
+				"RequestValid"
+			],
+			[
+				"Time",
+				"TimeOutCounter"
+			],
+			[
+				"Res",
+				"ResponseValid"
+			],
+			[
+				"Oth",
+				"OtherMAC"
+			],
+			[
+				"Ot",
+				"OtherIP"
+			],
+			[
+				"CLK",
+				"CLK_period"
+			],
+			[
+				"Req",
+				"RequestValid"
+			],
+			[
+				"Inte",
+				"InterestedIP"
+			],
+			[
+				"Tim",
+				"TimeOut"
+			],
+			[
+				"Reque",
+				"RequestSent"
+			],
+			[
+				"Lo",
+				"LookUp"
+			],
+			[
+				"IP_",
+				"RequestIP_buf"
+			],
+			[
+				"Loo",
+				"LookUpIndex"
+			],
+			[
+				"MA",
+				"MAC_LIST"
+			],
+			[
+				"MAC_LI",
+				"MAC_LIST"
+			],
+			[
+				"ar",
+				"architecture"
+			],
+			[
+				"MAC",
+				"MACLookUp"
+			],
+			[
+				"RX_OP",
+				"RX_OP1_dummy"
+			],
+			[
+				"IP",
+				"IP_ETHERTYPE_CODE"
+			],
+			[
+				"ARP",
+				"ARP_ETHERTYPE_CODE"
+			],
+			[
+				"Eth",
+				"EtherTypeByte1"
+			],
+			[
+				"VA",
+				"VAIO_ADDR_GOOD_INDICATE"
+			],
+			[
+				"ARP_Res",
+				"ARP_ResponseMAC"
+			],
+			[
+				"RX",
+				"RX_PROTOCOL_INDICATE"
+			],
+			[
+				"RX_P",
+				"RX_PROTOCOL_INDICATE"
+			],
+			[
+				"std",
+				"std_logic"
+			],
+			[
+				"RXEOP",
+				"RXEOP_ARP"
+			],
+			[
+				"RXER_",
+				"RXER_ARP"
+			],
+			[
+				"STD_",
+				"STD_LOGIC"
+			],
+			[
+				"ARP_TX",
+				"ARP_TXIDLE"
+			],
+			[
+				"ARP_Requ",
+				"ARP_RequestIP"
+			],
+			[
+				"ARP_Re",
+				"ARP_RequestValid"
+			],
+			[
+				"Respon",
+				"ResponseValid"
+			],
+			[
+				"ARP_res",
+				"ARP_ResponseMAC"
+			],
+			[
+				"ARP_re",
+				"ARP_ResponseValid"
+			],
+			[
+				"ARP_REq",
+				"ARP_RequestIP"
+			],
+			[
+				"DST",
+				"DST_MAC_ADDR"
+			],
+			[
+				"std_",
+				"std_logic"
+			],
+			[
+				"WrC_",
+				"WrC_ARP"
+			],
+			[
+				"TX",
+				"TXEN_dummy"
+			],
+			[
+				"RdC",
+				"RdC_IP"
+			],
+			[
+				"Rd",
+				"RdC_ARP"
+			],
+			[
+				"Rdc",
+				"RdC_IP"
+			],
+			[
+				"TXDV",
+				"TXDV_IP"
+			],
+			[
+				"TXEN",
+				"TXEN_dummy"
+			],
+			[
+				"TXDC_",
+				"TXDC_ARP"
+			],
+			[
+				"ST",
+				"STD_LOGIC"
+			],
+			[
+				"TXDV_",
+				"TXDV_ARP"
+			],
+			[
+				"TX_",
+				"TX_PROTOCOL_dummy"
+			],
+			[
+				"RX_N",
+				"RX_NEED_RESPONSE"
+			],
+			[
+				"STD",
+				"STD_LOGIC"
+			],
+			[
+				"RX_R",
+				"RX_NEED_RESPONSE_SET"
+			],
+			[
+				"Response",
+				"ResponseIP_dummy"
+			],
+			[
+				"OP",
+				"RX_OP0_dummy"
+			],
+			[
+				"RequestIP",
+				"RequestIP_buf"
+			],
+			[
+				"Resp",
+				"ResponseValid"
+			],
+			[
+				"Respo",
+				"ResponseValid"
+			],
+			[
+				"response",
+				"ResponseMAC"
+			],
+			[
+				"RX_",
+				"RX_counter"
+			],
+			[
+				"res",
+				"Response"
+			],
+			[
+				"risi",
+				"rising_edge"
+			],
+			[
+				"RE",
+				"ResponseValid"
+			],
+			[
+				"ris",
+				"rising_edge"
+			],
+			[
+				"TX_S",
+				"TX_state"
+			],
+			[
+				"TXCRC",
+				"TXCRC_D_VALID"
+			],
+			[
+				"TXCRC_C",
+				"TXCRC_CALC"
+			],
+			[
+				"Ethe",
+				"EtherType"
+			],
+			[
+				"In",
+				"Interpacket"
+			],
+			[
+				"TXDU",
+				"TXDU_dummy"
+			],
+			[
+				"Des",
+				"DEST_MAC_ADDR"
+			],
+			[
+				"Ether",
+				"EtherType"
+			],
+			[
+				"RXD",
+				"RXD_buf"
+			],
+			[
+				"RXER",
+				"RXER_INDICATE"
+			],
+			[
+				"RXCRC",
+				"RXCRC_CRC_VALID"
+			],
+			[
+				"Addr",
+				"AddrValid"
+			],
+			[
+				"TXCLK",
+				"TXCLK_f"
+			],
+			[
+				"MAC_A",
+				"MAC_ADDR_TYPE"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": "src/ip/IP.vhd",
+			"settings":
+			{
+				"buffer_size": 12817,
+				"line_ending": "Windows"
+			}
+		}
+	],
+	"build_system": "",
+	"build_system_choices":
+	[
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 381.0,
+		"last_filter": ":w",
+		"selected_items":
+		[
+			[
+				":w",
+				":w - Save"
+			],
+			[
+				":py",
+				"Set Syntax: Python"
+			],
+			[
+				":q",
+				"Set Syntax: SQL"
+			],
+			[
+				"package control dis",
+				"Package Control: Disable Package"
+			],
+			[
+				"package control enab",
+				"Package Control: Enable Package"
+			],
+			[
+				"package control: list",
+				"Package Control: List Packages"
+			],
+			[
+				"pack",
+				"Package Control: Enable Package"
+			],
+			[
+				"pa",
+				"Package Control: Install Package"
+			]
+		],
+		"width": 549.0
+	},
+	"console":
+	{
+		"height": 162.0,
+		"history":
+		[
+			":q",
+			"import urllib.request,os,hashlib; h = '2915d1851351e5ee549c20394736b442' + '8bc59f460fa1548d1514676163dafc88'; pf = 'Package Control.sublime-package'; ipp = sublime.installed_packages_path(); urllib.request.install_opener( urllib.request.build_opener( urllib.request.ProxyHandler()) ); by = urllib.request.urlopen( 'http://packagecontrol.io/' + pf.replace(' ', '%20')).read(); dh = hashlib.sha256(by).hexdigest(); print('Error validating download (got %s instead of %s), please try manual install' % (dh, h)) if dh != h else open(os.path.join( ipp, pf), 'wb' ).write(by)"
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"expanded_folders":
+	[
+		"/E/Github/tcp_rebuild/src",
+		"/E/Github/tcp_rebuild/src/ip"
+	],
+	"file_history":
+	[
+		"/E/Github/tcp_rebuild/src/mac/MAC.vhd",
+		"/E/Github/tcp_rebuild/src/arp/MACLookUp.vhd",
+		"/E/Github/tcp_rebuild/src/ip/IP.vhd",
+		"/E/Github/tcp_rebuild/src/arp/tb/MACLookUp_tb.vhd",
+		"/E/Github/tcp_rebuild/src/inter-protocol/Collector_L23.vhd",
+		"/E/Github/tcp_rebuild/src/inter-protocol/Dispatcher_L23.vhd",
+		"/E/Github/tcp_rebuild/src/shell.vhd",
+		"/E/Github/tcp_rebuild/src/constants/constants.vhd",
+		"/E/Github/tcp_rebuild/src/arp/tb/ARP_tb.vhd",
+		"/E/Github/tcp_rebuild/src/arp/ARP.vhd",
+		"/E/Github/tcp_rebuild/src/arp/MACLookup.vhd",
+		"/E/Github/tcp_rebuild/src/fifo/FIFO.vhd",
+		"/E/Github/tcp_rebuild/src/utilities/btn_debounce.vhd",
+		"/E/Github/tcp_rebuild/src/utilities/EdgeDetect.vhd",
+		"/E/Github/tcp_rebuild/src/uart/UART.vhd",
+		"/E/Github/tcp_rebuild/src/uart/UART_w_FIFO.vhd",
+		"/E/Github/tcp_rebuild/src/mac/tb/MACAddressCheck_tb.vhd",
+		"/E/Github/tcp_rebuild/src/counter/Counter.vhd",
+		"/C/Users/Neicul/AppData/Roaming/Sublime Text 3/Packages/Default/Preferences.sublime-settings",
+		"/E/Github/tcp_rebuild/src/mac/MII.vhd",
+		"/E/Github/tcp_rebuild/src/mac/MDIO.vhd",
+		"/E/Github/tcp_rebuild/src/mac/FrequencyDivider.vhd",
+		"/C/Users/Neicul/AppData/Roaming/Sublime Text 3/Packages/User/Preferences.sublime-settings",
+		"/E/Github/tcp_rebuild/src/crc/CRC.vhd",
+		"/E/Github/tcp_rebuild/src/mac/MACAddressCheck.vhd",
+		"/E/Github/tcp_rebuild/src/utilities/edge_detect.vhd",
+		"/E/Github/tcp_rebuild/src/counter/tb/Counter_tb.vhd",
+		"/E/Github/tcp_rebuild/src/uart/uart.vhd",
+		"/E/Github/tcp_stack_rebuild/project/project_full_stack.xise",
+		"/E/Github/tcp_rebuild/src/uart/tb/UART_w_FIFO_tb.vhd",
+		"/E/Github/tcp_rebuild/src/mac/fre_divider_final.vhd",
+		"/E/Github/tcp_rebuild/src/uart/tb/UART_tb_with_FIFO.vhd",
+		"/E/Github/tcp_stack_rebuild/src/shell.vhd",
+		"/E/Github/tcp_stack_rebuild/src/MAC.vhd",
+		"/E/Github/tcp_stack_rebuild/src/MAC_tb2.vhd",
+		"/E/Github/TCP_full_stack/src/CRC.vhd",
+		"/E/Github/tcp_stack_rebuild/src/CRC_tb.vhd",
+		"/E/Github/tcp_stack_rebuild/src/mii_interface.vhd",
+		"/C/Users/Neicul/AppData/Roaming/Sublime Text 3/Packages/User/VHDL.sublime-settings",
+		"/E/Github/TCP_full_stack/src/MAC.vhd"
+	],
+	"find":
+	{
+		"height": 43.0
+	},
+	"find_in_files":
+	{
+		"height": 0.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			"Busy",
+			"Pointer",
+			"ResponseIP",
+			"ResponseMac",
+			"Arp",
+			"RX_PRO",
+			"Des",
+			"DST",
+			"MAC_dst_addr",
+			"	",
+			"response_header",
+			"response_data",
+			"	",
+			"case",
+			"TXDV",
+			"SELT",
+			"RX_client",
+			"nRST",
+			"tab",
+			"	",
+			"nRST",
+			"RXDC",
+			"WrC",
+			"	",
+			"MII",
+			"	",
+			"space",
+			"	",
+			"BlockRam",
+			"RXC_DATA",
+			"RXC_DATA <= RXDU;\n",
+			"	",
+			"elsif"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+			"OutputValid",
+			"Index",
+			"  ",
+			"response_data",
+			"  ",
+			"",
+			"  "
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"sheets":
+			[
+			]
+		},
+		{
+			"selected": 0,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "src/ip/IP.vhd",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 12817,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								4125,
+								4125
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/VHDL/Syntaxes/VHDL.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 1920.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 28.0
+	},
+	"input":
+	{
+		"height": 0.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			],
+			[
+				1,
+				0,
+				2,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			0.5,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"pinned_build_system": "",
+	"project": "tcp_rebuild.sublime-project",
+	"replace":
+	{
+		"height": 52.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+			[
+				"mac",
+				"E:\\Github\\tcp_stack_rebuild\\src\\MAC.vhd"
+			],
+			[
+				"mac.vhd",
+				"E:\\Github\\tcp_stack_rebuild\\src\\MAC_tb.vhd"
+			]
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 625.0,
+		"last_filter": "",
+		"selected_items":
+		[
+			[
+				"",
+				"E:\\Visual Disk\\ubuntu\\lambda.sublime-project"
+			]
+		],
+		"width": 475.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 1,
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 188.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}

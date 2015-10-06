@@ -16,6 +16,8 @@ package TCP_CONSTANTS is
   constant IP_ETHERTYPE_CODE: ETHERTYPE_CODE_TYPE := (X"08", X"00");
   constant ARP_ETHERTYPE_CODE: ETHERTYPE_CODE_TYPE := (X"08", X"06");
 
-  type L4_PROTOCOL is (TCP, UDP);
+  type L4_PROTOCOL is (TCP, UDP, UNKNOWN);
+  constant TCP_PROTOCOL_CODE :std_logic_vector(7 downto 0) := X"06";
+  constant UDP_PROTOCOL_CODE : std_logic_vector(7 downto 0) := X"11";
 
 end TCP_CONSTANTS;
