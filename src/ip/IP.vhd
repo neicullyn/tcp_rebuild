@@ -56,7 +56,7 @@ architecture Behavioral of IP is
 
   type TX_states is (Idle, ChecksumSrc, ChecksumDst, MACLookUp, Header, GenCheckSum, GetChecksum, Src, Dst, Data);
   signal TX_state : TX_states;
-  signal TX_counter: integer range 0 to 1023;
+  signal TX_counter: integer range 0 to 65535;
 
   type HEADER_TYPE is array (0 to 9) of std_logic_vector (7 downto 0);
   signal TX_Header : HEADER_TYPE;
@@ -76,6 +76,33 @@ architecture Behavioral of IP is
   signal TXCHKSUM_CHKSUM : std_logic_vector (7 downto 0);
 
   signal ChecksumFlip: std_logic;
+
+  type RX_states is (Reset, Header, Data, WaitForEOP, EOP, ERR);
+  signal RX_state : RX_states;
+  signal RX_counter: integer range 0 to 65535;
+  signal RX_counter_inc: integer range 0 to 65535;
+
+  signal IHL_buf: std_logic_vector(3 downto 0);
+  signal IHL_Bytes : integer;
+
+  signal RX_TotalLength : std_logic_vector (15 downto 0);
+
+  signal RX_IP_ERR: std_logic;
+  signal RX_IP_ERR_SET: std_logic;
+  signal RX_IP_ERR_SET_CHKSUM: std_logic;
+
+  signal RX_LastByte: std_logic_vector (7 downto 0);
+
+  signal RXCHKSUM_DATA : std_logic_vector (7 downto 0);
+  signal RXCHKSUM_INIT : std_logic;
+  signal RXCHKSUM_D_VALID : std_logic;
+  signal RXCHKSUM_CALC : std_logic;
+  signal RXCHKSUM_REQ : std_logic;
+  signal RXCHKSUM_SELB : std_logic;
+  signal RXCHKSUM_CHKSUM : std_logic_vector (7 downto 0);
+
+  type RXCHKSUM_states is (Idle, FirstByte, SecondByte, Done);
+  signal RXCHKSUM_state : RXCHKSUM_states;
 begin
   TX_TotalLength <= std_logic_vector(unsigned(TX_DataLength) + 20);
 
@@ -140,6 +167,7 @@ begin
           else
             ChecksumFlip <= '1';
           end if;
+
         when MACLookUp =>
           if (MACLOokUP_OutputValid = '1') then
             TX_state <= Header;
@@ -312,4 +340,184 @@ begin
       TXCHKSUM_SELB <= '0';
     end if;
   end process;
+
+  RX_counter_inc <= (RX_counter + 1) mod 65535;
+  RX_SM: process (nRST, CLK)
+  begin
+    if (nRST = '0') then
+      RX_state <= Reset;
+    elsif (rising_edge(CLK)) then
+      case RX_state is
+        when Reset =>
+          RX_counter = 0;
+          RX_state <= Header;
+
+        when Header =>
+          if (WrU = '1') then
+            RX_counter = RX_counter + 1;
+            if (RX_counter_inc = IHL_Bytes) then
+              RX_state <= Data;
+            end if;
+          end if;
+          if (RX_IP_ERR = '1') then
+            RX_state <= WaitForEOP;
+          end if;
+
+        when Data =>
+          if (WrU = '1') then
+            RX_counter = RX_counter_inc;
+            if (RX_counter_inc = unsigned(RX_TotalLength)) then
+              RX_state <= WaitForEOP;
+            end if;
+          end if;
+          if (RX_IP_ERR = '1') then
+            RX_state <= WaitForEOP;
+          end if;
+
+        when WaitForEOP =>
+          if (RXEOP = '1') then
+            if (RX_IP_ERR = '1' or RXERR = '1') then
+              RX_state <= ERR;
+            else
+              RX_state <= EOP;
+            end if;
+          end if;
+
+        when EOP =>
+          RX_state <= Reset;
+
+        when ERR =>
+          RX_state <= Reset;
+      end case;
+    end if;
+  end process;
+
+  RXDC <= RXDU;
+
+  WrC_proc: process (WrU, RX_state)
+  begin
+    if (RX_state = Data) then
+      WrC <= WrU;
+    else
+      WrC <= '0';
+    end if;
+  end process;
+
+  RX_LastByte_proc: process (CLK)
+  begin
+    if (rising_edge(CLK)) then
+      if (WrU = '1') then
+        RX_LastByte <= RXDU;
+      end if;
+    end if;
+  end process;
+
+  IHL_Bytes <= unsigned(IHL_buf & "00");
+  IHL_buf_proc: process (RX_state, CLK)
+  begin
+    if (RX_state = Reset) then
+      IHL_buf <= X"0";
+    elsif (rising_edge(CLK)) then
+      if (RX_counter = 0 and WrU = '1') then
+        IHL_buf <= RXDU(3 downto 0);
+      end if;
+    end if;
+  end process;
+
+  RX_TotalLength_proc: process (RX_state, CLK)
+  begin
+    if (RX_state = Reset) then
+      RX_TotalLength <= X"0000";
+    elsif (rising_edge(CLK)) then
+      if (RX_counter = 3) then
+        RX_TotalLength = RX_LastByte & RXDU;
+      end if;
+    end if;
+  end process;
+
+  RX_IP_ERR_proc: process (RX_state, CLK)
+  begin
+    if (RX_state = Reset) then
+      RX_IP_ERR <= '0';
+    elsif (rising_edge(CLK)) then
+      if (RX_IP_ERR_SET = '1') then
+        RX_IP_ERR <= '1';
+      end if;
+    end if;
+  end process;
+
+  RXCHKSUM: CHECKSUM
+  port map(
+    CLK => CLK,
+    DATA => RXCHKSUM_DATA,
+    nRST => nRST,
+    INIT => RXCHKSUM_INIT,
+    D_VALID => RXCHKSUM_D_VALID,
+    CALC => RXCHKSUM_CALC,
+    REQ => RXCHKSUM_REQ,
+    SELB => RXCHKSUM_SELB,
+    CHKSUM => RXCHKSUM_CHKSUM
+  );
+
+  RXCHKSUM_DATA <= RXDU;
+  RXCHKSUM_control: process (RX_state)
+  begin
+    if (RX_state = Reset) then
+      RXCHKSUM_INIT <= '1';
+    else
+      RXCHKSUM_INIT <= '0';
+    end if;
+
+    RXCHKSUM_CALC <= '0';
+    if (RX_state = Header) then
+      if (RX_counter mod 2 = 1) then
+        RXCHKSUM_CALC <= '1';
+      end if;
+    end if;
+
+    if (RX_state = Header) then
+      RXCHKSUM_D_VALID <= '1';
+    else
+      RXCHKSUM_D_VALID <= '0';
+    end if;
+
+    if (RX_counter mod 2 = 1 or RXCHKSUM_state = FirstByte) then
+      TXCHKSUM_SELB <= '1';
+    else
+      TXCHKSUM_SELB <= '0';
+    end if;
+  end process;
+
+  RXCHKSUM_SM: process (RX_state, CLK)
+  begin
+    if (RX_state = Reset) then
+      RXCHKSUM_state <= Idle;
+      RXCHKSUM_REQ = '0';
+    elsif (rising_edge(CLK)) then
+      case RXCHKSUM_state is
+        when Idle =>
+          if (RX_state = Data) then
+            RXCHKSUM_state <= FirstByte;
+          end if;
+          RXCHKSUM_REQ = '1';
+        when FirstByte =>
+          RXCHKSUM_state <= SecondByte;
+        when SecondByte =>
+          RXCHKSUM_state <= Done;
+        when Done =>
+      end case;
+    end if;
+  end process;
+
+  RX_IP_ERR_SET_CHKSUM_proc: process (RXCHKSUM_state, RXCHKSUM_CHKSUM)
+  begin
+    RX_IP_ERR_SET_CHKSUM = '0';
+    if (RXCHKSUM_state = FirstByte or RXCHKSUM_states = SecondByte) then
+      if (RXCHKSUM_CHKSUM /= X"00") then
+        RX_IP_ERR_SET_CHKSUM = '1';
+      end if;
+    end if;
+  end process;
+
+
 end Behavioral;
