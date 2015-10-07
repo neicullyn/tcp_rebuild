@@ -72,8 +72,8 @@ ARCHITECTURE behavior OF CHECKSUM_tb IS
 	
 	
 	-- Testing constants
-	type Tarray is array (9 downto 0) of std_logic_vector(15 downto 0);
-	constant TDATA: Tarray := (X"4500", X"0030", X"4422", X"4000", X"8006", X"442E", X"8c7c", X"19ac", X"ae24", X"1e2b");
+	type Tarray is array (0 to 9) of std_logic_vector(15 downto 0);
+	constant TDATA: Tarray := (X"4500", X"0015", X"0000", X"0000", X"0706", X"5959", X"c0a8", X"0107", X"c0a8", X"0103");
 
 BEGIN
  

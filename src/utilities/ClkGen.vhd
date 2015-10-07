@@ -5,7 +5,7 @@ use work.TCP_CONSTANTS.all;
 
 entity ClkGen is
   Port (
-    CLK : std_logic;
+    CLK : in std_logic;
     CLK_1K : out std_logic
   );
 end ClkGen;

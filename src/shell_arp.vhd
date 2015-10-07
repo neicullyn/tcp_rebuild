@@ -195,75 +195,10 @@ architecture Behavioral of shell is
     DST_MAC_ADDR :  out MAC_ADDR_TYPE;
     RequestIP: in IP_ADDR_TYPE;
     RequestValid: in STD_LOGIC;
-    RequestSent: out STD_LOGIC;
 
     ResponseIP: out IP_ADDR_TYPE;
     ResponseMAC: out MAC_ADDR_TYPE;
     ResponseValid: out STD_LOGIC
-  );
-	END COMPONENT;
-
-	COMPONENT ClkGen
-  Port (
-    CLK : in std_logic;
-    CLK_1K : out std_logic
-  );
-	END COMPONENT;
-
-	COMPONENT MACLookUp
-  Port (
-    nRST : in std_logic;
-    CLK : in std_logic;
-    CLK_1K : in std_logic;
-
-    InputIP : in IP_ADDR_TYPE;
-    Start : in std_logic;
-    OutputMAC : out MAC_ADDR_TYPE;
-    OutputValid : out std_logic;
-
-    RequestIP : out IP_ADDR_TYPE;
-    RequestValid : out std_logic;
-    RequestSent : in std_logic;
-
-    ResponseIP : in IP_ADDR_TYPE;
-    ResponseMAC : in MAC_ADDR_TYPE;
-    ResponseValid : in std_logic
-  );
-	END COMPONENT;
-
-	COMPONENT IP
-  Port (
-    CLK : in std_logic;
-    nRST : in std_logic;
-
-    TXDV : in std_logic;
-    TXEN : out std_logic;
-    TXDC : in std_logic_vector (7 downto 0);
-    TXDU : out std_logic_vector (7 downto 0);
-    TXIDLE : out std_logic;
-    RdC : out std_logic;
-    RdU : in std_logic;
-
-    DST_IP_ADDR : in IP_ADDR_TYPE;
-
-    TX_DataLength : std_logic_vector (15 downto 0);
-
-    DST_MAC_ADDR : out MAC_ADDR_TYPE;
-
-    MACLookUp_InputIP : out IP_ADDR_TYPE;
-    MACLookUp_Start : out std_logic;
-    MACLookUp_OutputMAC : in MAC_ADDR_TYPE;
-    MACLookUP_OutputValid : in std_logic;
-
-    RXDC : out std_logic_vector (7 downto 0);
-    RXDU : in std_logic_vector (7 downto 0);
-    WrC : out std_logic;
-    WrU : in std_logic;
-    RXER : in std_logic;
-    RXEOP : in std_logic;
-
-    TX_PROTOCOL : in L4_PROTOCOL;
-    RX_PROTOCOL : out L4_PROTOCOL
   );
 	END COMPONENT;
 
@@ -308,7 +243,6 @@ architecture Behavioral of shell is
 	END COMPONENT;
 
 	signal nRST : std_logic;
-	signal CLK_1K : std_logic;
 
 	-- Signal for UART
 	signal UART_DIN : std_logic_vector(7 downto 0);
@@ -363,36 +297,10 @@ architecture Behavioral of shell is
 	signal ARP_DST_MAC_ADDR : MAC_ADDR_TYPE;
 	signal ARP_RequestIP: IP_ADDR_TYPE;
 	signal ARP_RequestValid: std_logic;
-	signal ARP_RequestSent: std_logic;
 	signal ARP_ResponseIP: IP_ADDR_TYPE;
 	signal ARP_ResponseMAC: MAC_ADDR_TYPE;
 	signal ARP_ResponseValid: std_logic;
 
-	-- Signals for MACLookUp
-	signal MACLookUp_InputIP: IP_ADDR_TYPE;
-	signal MACLookUp_Start: std_logic;
-	signal MACLookUp_OutputMAC: MAC_ADDR_TYPE;
-	signal MACLookUP_OutputValid: std_logic;
-
-	-- Signals for IP
-	signal IP_TXDV: std_logic;
-	signal IP_TXEN: std_logic;
-	signal IP_TXDC: std_logic_vector(7 downto 0);
-	signal IP_TXDU: std_logic_vector(7 downto 0);
-	signal IP_TXIDLE: std_logic;
-	signal IP_RdC: std_logic;
-	signal IP_RdU: std_logic;
-	signal IP_DST_IP_ADDR: IP_ADDR_TYPE;
-	signal IP_TX_DataLength: std_logic_vector(15 downto 0);
-	signal IP_DST_MAC_ADDR: MAC_ADDR_TYPE;
-	signal IP_RXDC: std_logic_vector(7 downto 0);
-	signal IP_RXDU: std_logic_vector(7 downto 0);
-	signal IP_WrC: std_logic;
-	signal IP_WrU: std_logic;
-	signal IP_RXER: std_logic;
-	signal IP_RXEOP: std_logic;
-	signal TX_L4_PROTOCOL: L4_PROTOCOL;
-	signal RX_L4_PROTOCOL: L4_PROTOCOL;
 
 	--- DEBUG
 	signal flip : std_logic;
@@ -410,16 +318,13 @@ architecture Behavioral of shell is
 	signal VAIO_ADDR_GOOD_INDICATE: std_logic;
 	signal ARP_RXEOP_INDICATE : std_logic;
 begin
-	ClkGen_inst: ClkGen Port Map(
-		CLK => CLK,
-		CLK_1K => CLK_1K
-	);
 
 	PHY_TXEN <= PHY_TXEN_dummy;
 	SSEG_CA <= (others => '0');
 	SSEG_AN <= (others => '1');
 
 	PHY_MDIO <= MDIO_MDIO;
+	RX_PROTOCOL_INDICATE <= '1' when (RX_L3_PROTOCOL = IP) else '0';
 
 	process (CLK)
 	begin
@@ -594,57 +499,9 @@ begin
 		DST_MAC_ADDR => ARP_DST_MAC_ADDR,
 		RequestIP => ARP_RequestIP,
 		RequestValid => ARP_RequestValid,
-		RequestSent => ARP_RequestSent,
 		ResponseIP => ARP_ResponseIP,
 		ResponseMAC => ARP_ResponseMAC,
 		ResponseValid => ARP_ResponseValid
-	);
-
-	MACLookUp_inst: MACLookUp Port Map(
-		nRST => nRST,
-		CLK => CLK,
-		CLK_1K => CLK_1K,
-		InputIp => MACLookUp_InputIP,
-		Start => MACLookUp_Start,
-		OutputMAC => MACLookUp_OutputMAC,
-		OutputValid => MACLookUP_OutputValid,
-		RequestIP => ARP_RequestIP,
-		RequestValid => ARP_RequestValid,
-		RequestSent => ARP_RequestSent,
-		ResponseIP => ARP_ResponseIP,
-		ResponseMAC => ARP_ResponseMAC,
-		ResponseValid => ARP_ResponseValid
-	);
-
-	IP_inst : IP Port Map(
-		CLK => CLK,
-		nRST => nRST,
-		TXDV => IP_TXDV,
-		TXEN => IP_TXEN,
-		TXDC => IP_TXDC,
-		TXDU => IP_TXDU,
-		TXIDLE => IP_TXIDLE,
-		RdC => IP_RdC,
-		RdU => IP_RdU,
-
-		DST_IP_ADDR => IP_DST_IP_ADDR,
-		TX_DataLength => IP_TX_DataLength,
-
-		DST_MAC_ADDR => IP_DST_MAC_ADDR,
-		MACLookUp_InputIP => MACLookUp_InputIP,
-		MACLookUp_Start => MACLookUp_Start,
-		MACLookUp_OutputMAC => MACLookUp_OutputMAC,
-		MACLookUP_OutputValid => MACLookUP_OutputValid,
-
-		RXDC => IP_RXDC,
-		RXDU => IP_RXDU,
-		WrC => IP_WrC,
-		WrU => IP_WrU,
-		RXER => IP_RXER,
-		RXEOP => IP_RXEOP,
-
-		TX_PROTOCOL => TX_L4_PROTOCOL,
-		RX_PROTOCOL => RX_L4_PROTOCOL
 	);
 
 	Collector_L23_inst: Collector_L23 PORT MAP(
@@ -659,10 +516,10 @@ begin
 		TXDV_ARP => ARP_TXEN,
 		DST_MAC_ADDR_ARP => ARP_DST_MAC_ADDR,
 		RdC_ARP => ARP_RdU,
-		TXDC_IP => IP_TXDU,
-		TXDV_IP => IP_TXEN,
-		DST_MAC_ADDR_IP => IP_DST_MAC_ADDR,
-		RdC_IP => IP_RdU
+		TXDC_IP => X"00",
+		TXDV_IP => '0',
+		DST_MAC_ADDR_IP => MAC_ADDR,
+		RdC_IP => open
 	);
 
 	Dispatcher_L23_inst: Dispatcher_L23 PORT MAP(
@@ -677,18 +534,16 @@ begin
 		WrC_ARP => ARP_WrU,
 		RXER_ARP => ARP_RXER,
 		RXEOP_ARP => ARP_RXEOP,
-		RXDC_IP => IP_RXDC,
-		WrC_IP => IP_WrC,
-		RXER_IP => IP_RXER,
-		RXEOP_IP => IP_RXEOP
+		RXDC_IP => open,
+		WrC_IP => open,
+		RXER_IP => open,
+		RXEOP_IP => open
 	);
 
-	IP_TXDC <= UART_DOUT;
-	IP_TXDV <= UART_DOUTV;
-	UART_RD <= IP_RdC;
+	ARP_RequestIP <= (X"C0",X"A8",X"01",X"03");
+	ARP_RequestValid <= UART_DOUTV;
+	UART_RD <= not ARP_TXIDLE;
 
-	IP_TX_DataLength <= X"0001";
-	IP_DST_IP_ADDR <= VAIO_IP_ADDR;
 -- DEBUG: forward data to PHY to UART
 --	UART_DIN <= MAC_TXDU;
 --	UART_WR <= MAC_RdU;

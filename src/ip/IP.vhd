@@ -24,11 +24,8 @@ entity IP is
 
     MACLookUp_InputIP : out IP_ADDR_TYPE;
     MACLookUp_Start : out std_logic;
-    MACLookUp_OutputMAC : out MAC_ADDR_TYPE;
-    MACLOokUP_OutputValid : out std_logic;
-
-    ResponseMAC : in IP_ADDR_TYPE;
-    ResponseValid : in std_logic;
+    MACLookUp_OutputMAC : in MAC_ADDR_TYPE;
+    MACLookUP_OutputValid : in std_logic;
 
     RXDC : out std_logic_vector (7 downto 0);
     RXDU : in std_logic_vector (7 downto 0);
@@ -38,7 +35,7 @@ entity IP is
     RXEOP : in std_logic;
 
     TX_PROTOCOL : in L4_PROTOCOL;
-    RX_PROTOCOL : out L4_PROTOCOL;
+    RX_PROTOCOL : out L4_PROTOCOL
   );
 end IP;
 
@@ -57,7 +54,7 @@ architecture Behavioral of IP is
     );
   end component;
 
-  type TX_states is (Idle, MACLookUp, Header, GenCheckSum, Checksum, Src, Dst, Data);
+  type TX_states is (Idle, ChecksumSrc, ChecksumDst, MACLookUp, Header, GenCheckSum, GetChecksum, Src, Dst, Data);
   signal TX_state : TX_states;
   signal TX_counter: integer range 0 to 1023;
 
@@ -68,6 +65,8 @@ architecture Behavioral of IP is
 
   signal DST_IP_ADDR_buf : IP_ADDR_TYPE;
 
+  signal TXDU_dummy : std_logic_vector (7 downto 0);
+
   signal TXCHKSUM_DATA : std_logic_vector (7 downto 0);
   signal TXCHKSUM_INIT : std_logic;
   signal TXCHKSUM_D_VALID : std_logic;
@@ -75,8 +74,10 @@ architecture Behavioral of IP is
   signal TXCHKSUM_REQ : std_logic;
   signal TXCHKSUM_SELB : std_logic;
   signal TXCHKSUM_CHKSUM : std_logic_vector (7 downto 0);
+
+  signal ChecksumFlip: std_logic;
 begin
-  TX_TotalLength <= TX_DataLength + 20;
+  TX_TotalLength <= std_logic_vector(unsigned(TX_DataLength) + 20);
 
   TX_Header(0) <= X"45"; -- Version = 4, IHL = 5
   TX_Header(1) <= X"00"; -- Best effort, and no ECN
@@ -93,11 +94,11 @@ begin
   begin
     case TX_PROTOCOL is
       when TCP =>
-        TX_Header(9) <= TCP_PROTOCOL_TYPE;
+        TX_Header(9) <= TCP_PROTOCOL_CODE;
       when UDP =>
-        TX_Header(9) <= UDP_PROTOCOL_TYPE;
+        TX_Header(9) <= UDP_PROTOCOL_CODE;
       when UNKNOWN =>
-        TX_Header(9) <= UDP_PROTOCOL_TYPE;
+        TX_Header(9) <= UDP_PROTOCOL_CODE;
     end case;
   end process;
 
@@ -109,9 +110,36 @@ begin
       case TX_state is
         when Idle =>
           if (TXDV = '1') then
-            TX_state <= WaitForMACLookUp;
+            TX_state <= ChecksumSrc;
+            TX_counter <= 0;
+            ChecksumFlip <= '0';
           end if;
 
+        when ChecksumSrc =>
+          if (ChecksumFlip = '1') then
+            ChecksumFlip <= '0';
+            if (TX_counter = 3) then
+              TX_state <= ChecksumDst;
+              TX_counter <= 0;
+            else
+              TX_counter <= TX_counter + 1;
+            end if;
+          else
+            ChecksumFlip <= '1';
+          end if;
+
+        when ChecksumDst =>
+          if (ChecksumFlip = '1') then
+            ChecksumFlip <= '0';
+            if (TX_counter = 3) then
+              TX_state <= MACLookUp;
+              TX_counter <= 0;
+            else
+              TX_counter <= TX_counter + 1;
+            end if;
+          else
+            ChecksumFlip <= '1';
+          end if;
         when MACLookUp =>
           if (MACLOokUP_OutputValid = '1') then
             TX_state <= Header;
@@ -120,7 +148,7 @@ begin
 
         when Header =>
           if (RdU = '1') then
-            if (TX_counter = 17) then
+            if (TX_counter = 9) then
               TX_state <= GenChecksum;
               TX_counter <= 0;
             else
@@ -129,9 +157,9 @@ begin
           end if;
 
         when GenChecksum =>
-          TX_state <= Checksum;
+          TX_state <= GetChecksum;
 
-        when Checksum =>
+        when GetChecksum =>
           if (RdU = '1') then
             if (TX_counter = 1) then
               TX_state <= Src;
@@ -172,7 +200,7 @@ begin
   TX_EN: process (TX_state, TXDV, RdU)
   begin
     TXEN <= '1';
-    if (TX_state = Idle) then
+    if (TX_state = Idle or TX_state = MACLookUp) then
       TXEN <= '0';
     end if;
 
@@ -184,22 +212,33 @@ begin
 
   TXIDLE <= '1' when TX_state = Idle else '0';
 
-  TX_DATA: process (TX_state, TX_counter, TXCHKSUM_CHKSUM)
+  TXDU <= TXDU_dummy;
+  TX_DATA: process (TX_state, TX_counter, TXCHKSUM_CHKSUM, TX_Header, DST_IP_ADDR_buf, TXDC)
   begin
     case TX_state is
-      when Idle =>
-        TXDU <= X"00";
       when Header =>
-        TXDU <= TX_Header(TX_counter);
-      when Checksum =>
-        TXDU <= TXCHKSUM_CHKSUM;
+        TXDU_dummy <= TX_Header(TX_counter);
+      when GetChecksum =>
+        TXDU_dummy <= TXCHKSUM_CHKSUM;
       when Src =>
-        TXDU => IP_ADDR(TX_counter);
+        TXDU_dummy <= IP_ADDR(TX_counter);
       when Dst =>
-        TXDU => DST_IP_ADDR_buf(TX_counter);
+        TXDU_dummy <= DST_IP_ADDR_buf(TX_counter);
       when Data =>
-        TXDU <= TXDC;
+        TXDU_dummy <= TXDC;
+		when Others =>
+        TXDU_dummy <= X"00";
     end case;
+  end process;
+
+  MACLookUp_Start <= '1' when TX_state = MACLookUp else '0';
+  DST_MAC_ADDR_proc: process (CLK)
+  begin
+    if (rising_edge(CLK)) then
+      if (TX_state = MACLookUp and MACLookUP_OutputValid = '1') then
+        DST_MAC_ADDR <= MACLookUp_OutputMAC;
+      end if;
+    end if;
   end process;
 
   DST_IP_ADDR_buf_proc: process (CLK)
@@ -224,9 +263,18 @@ begin
     CHKSUM => TXCHKSUM_CHKSUM
   );
 
-  TXCHKSUM_DATA <= TXDC;
+  process (TX_state, TX_counter, DST_IP_ADDR_buf, TXDU_dummy)
+  begin
+    TXCHKSUM_DATA <= TXDU_dummy;
+    if (TX_state = ChecksumSrc) then
+      TXCHKSUM_DATA <= IP_ADDR(TX_counter);
+    end if;
+    if (TX_state = ChecksumDst) then
+      TXCHKSUM_DATA <= DST_IP_ADDR(TX_counter);
+    end if;
+  end process;
 
-  TXCHKSUM_control: process (TXDV, RdU, TX_state)
+  TXCHKSUM_control: process (TXDV, RdU, TX_state, TX_counter, ChecksumFlip)
   begin
     if (TXDV = '1' and TX_state = Idle) then
       TXCHKSUM_INIT <= '1';
@@ -234,23 +282,31 @@ begin
       TXCHKSUM_INIT <= '0';
     end if;
 
+    TXCHKSUM_CALC <= '0';
+    if (TX_state = ChecksumSrc or TX_state = ChecksumDst) then
+      if (TX_counter mod 2 = 1 and ChecksumFlip = '1') then
+        TXCHKSUM_CALC <= '1';
+      end if;
+    end if;
     if (TX_state = Header and RdU = '1') then
-      TXCRC_D_VALID <= '1';
-      TXCHKSUM_CALC = '1';
-    else
-      TXCRC_D_VALID <= '1';
-      TXCHKSUM_CALC = '0';
+      if (TX_counter mod 2 = 1) then
+        TXCHKSUM_CALC <= '1';
+      end if;
     end if;
 
-    if (TX_state = GenChecksum or TX_state = Checksum) then
+    if (TX_state = Header or TX_state = ChecksumSrc or TX_state = ChecksumDst) then
+      TXCHKSUM_D_VALID <= '1';
+    else
+      TXCHKSUM_D_VALID <= '0';
+    end if;
+
+    if (TX_state = GenChecksum or TX_state = GetChecksum) then
       TXCHKSUM_REQ <= '1';
     else
       TXCHKSUM_REQ <= '0';
     end if;
 
-    if (TX_state = Checksum) then
-      TXCHKSUM_SELB <= '1';
-    elsif (TX_counter mod 2 = 1) then
+    if (TX_counter mod 2 = 1) then
       TXCHKSUM_SELB <= '1';
     else
       TXCHKSUM_SELB <= '0';
