@@ -34,6 +34,9 @@ entity IP is
     RXER : in std_logic;
     RXEOP : in std_logic;
 
+    RXER_out : out std_logic;
+    RXEOP_out : out std_logic;
+
     TX_PROTOCOL : in L4_PROTOCOL;
     RX_PROTOCOL : out L4_PROTOCOL
   );
@@ -349,12 +352,12 @@ begin
     elsif (rising_edge(CLK)) then
       case RX_state is
         when Reset =>
-          RX_counter = 0;
+          RX_counter <= 0;
           RX_state <= Header;
 
         when Header =>
           if (WrU = '1') then
-            RX_counter = RX_counter + 1;
+            RX_counter <= RX_counter_inc;
             if (RX_counter_inc = IHL_Bytes) then
               RX_state <= Data;
             end if;
@@ -365,7 +368,7 @@ begin
 
         when Data =>
           if (WrU = '1') then
-            RX_counter = RX_counter_inc;
+            RX_counter <= RX_counter_inc;
             if (RX_counter_inc = unsigned(RX_TotalLength)) then
               RX_state <= WaitForEOP;
             end if;
@@ -373,10 +376,13 @@ begin
           if (RX_IP_ERR = '1') then
             RX_state <= WaitForEOP;
           end if;
+          if (RXEOP = '1') then
+            RX_state <= ERR;
+          end if;
 
         when WaitForEOP =>
           if (RXEOP = '1') then
-            if (RX_IP_ERR = '1' or RXERR = '1') then
+            if (RX_IP_ERR = '1' or RXER = '1') then
               RX_state <= ERR;
             else
               RX_state <= EOP;
@@ -391,6 +397,8 @@ begin
       end case;
     end if;
   end process;
+  RXEOP_out <= '1' when RX_state = EOP or RX_state = ERR else '0';
+  RXER_out <= '1' when RX_state = ERR else '0';
 
   RXDC <= RXDU;
 
@@ -412,7 +420,7 @@ begin
     end if;
   end process;
 
-  IHL_Bytes <= unsigned(IHL_buf & "00");
+  IHL_Bytes <= to_integer(unsigned(IHL_buf)) * 4;
   IHL_buf_proc: process (RX_state, CLK)
   begin
     if (RX_state = Reset) then
@@ -430,7 +438,7 @@ begin
       RX_TotalLength <= X"0000";
     elsif (rising_edge(CLK)) then
       if (RX_counter = 3) then
-        RX_TotalLength = RX_LastByte & RXDU;
+        RX_TotalLength <= RX_LastByte & RXDU;
       end if;
     end if;
   end process;
@@ -460,7 +468,7 @@ begin
   );
 
   RXCHKSUM_DATA <= RXDU;
-  RXCHKSUM_control: process (RX_state)
+  RXCHKSUM_control: process (RX_state, RX_counter)
   begin
     if (RX_state = Reset) then
       RXCHKSUM_INIT <= '1';
@@ -482,9 +490,9 @@ begin
     end if;
 
     if (RX_counter mod 2 = 1 or RXCHKSUM_state = FirstByte) then
-      TXCHKSUM_SELB <= '1';
+      RXCHKSUM_SELB <= '1';
     else
-      TXCHKSUM_SELB <= '0';
+      RXCHKSUM_SELB <= '0';
     end if;
   end process;
 
@@ -492,14 +500,14 @@ begin
   begin
     if (RX_state = Reset) then
       RXCHKSUM_state <= Idle;
-      RXCHKSUM_REQ = '0';
+      RXCHKSUM_REQ <= '0';
     elsif (rising_edge(CLK)) then
       case RXCHKSUM_state is
         when Idle =>
           if (RX_state = Data) then
             RXCHKSUM_state <= FirstByte;
           end if;
-          RXCHKSUM_REQ = '1';
+          RXCHKSUM_REQ <= '1';
         when FirstByte =>
           RXCHKSUM_state <= SecondByte;
         when SecondByte =>
@@ -511,13 +519,14 @@ begin
 
   RX_IP_ERR_SET_CHKSUM_proc: process (RXCHKSUM_state, RXCHKSUM_CHKSUM)
   begin
-    RX_IP_ERR_SET_CHKSUM = '0';
-    if (RXCHKSUM_state = FirstByte or RXCHKSUM_states = SecondByte) then
+    RX_IP_ERR_SET_CHKSUM <= '0';
+    if (RXCHKSUM_state = FirstByte or RXCHKSUM_state = SecondByte) then
       if (RXCHKSUM_CHKSUM /= X"00") then
-        RX_IP_ERR_SET_CHKSUM = '1';
+        RX_IP_ERR_SET_CHKSUM <= '1';
       end if;
     end if;
   end process;
+
 
 
 end Behavioral;

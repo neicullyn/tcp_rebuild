@@ -261,6 +261,8 @@ architecture Behavioral of shell is
     WrU : in std_logic;
     RXER : in std_logic;
     RXEOP : in std_logic;
+    RXER_out : out std_logic;
+    RXEOP_out : out std_logic;
 
     TX_PROTOCOL : in L4_PROTOCOL;
     RX_PROTOCOL : out L4_PROTOCOL
@@ -391,6 +393,8 @@ architecture Behavioral of shell is
 	signal IP_WrU: std_logic;
 	signal IP_RXER: std_logic;
 	signal IP_RXEOP: std_logic;
+	signal IP_RXER_out: std_logic;
+	signal IP_RXEOP_out: std_logic;
 	signal TX_L4_PROTOCOL: L4_PROTOCOL;
 	signal RX_L4_PROTOCOL: L4_PROTOCOL;
 
@@ -642,6 +646,8 @@ begin
 		WrU => IP_WrU,
 		RXER => IP_RXER,
 		RXEOP => IP_RXEOP,
+		RXER_out => IP_RXER_out,
+		RXEOP_out => IP_RXEOP_out,
 
 		TX_PROTOCOL => TX_L4_PROTOCOL,
 		RX_PROTOCOL => RX_L4_PROTOCOL
@@ -677,8 +683,8 @@ begin
 		WrC_ARP => ARP_WrU,
 		RXER_ARP => ARP_RXER,
 		RXEOP_ARP => ARP_RXEOP,
-		RXDC_IP => IP_RXDC,
-		WrC_IP => IP_WrC,
+		RXDC_IP => IP_RXDU,
+		WrC_IP => IP_WrU,
 		RXER_IP => IP_RXER,
 		RXEOP_IP => IP_RXEOP
 	);
@@ -718,10 +724,10 @@ begin
 			RXER_INDICATE <= '0';
 			PHY_RXER_INDICATE <= '0';
 		elsif (rising_edge(CLK)) then
-			if (MAC_RXEOP = '1') then
+			if (IP_RXEOP_out = '1') then
 				RXEOP_INDICATE <= not RXEOP_INDICATE;
 			end if;
-			if (MAC_RXER = '1') then
+			if (IP_RXER_out = '1') then
 				RXER_INDICATE <= '1';
 			end if;
 			if (PHY_RXER = '1') then

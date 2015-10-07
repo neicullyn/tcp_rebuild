@@ -97,9 +97,15 @@ ARCHITECTURE behavior OF IP_tb IS
    signal RXDC : std_logic_vector(7 downto 0);
    signal WrC : std_logic;
    signal RX_PROTOCOL : L4_PROTOCOL;
+   signal RXER_out : std_logic;
+   signal RXEOP_out : std_logic;
 
    -- Clock period definitions
    constant CLK_period : time := 10 ns;
+
+
+   type RX_DATA_TYPE is array (0 to 68) of std_logic_vector(7 downto 0);
+   signal RX_DATA: RX_DATA_TYPE := (X"45",X"00",X"00",X"41",X"00",X"00",X"00",X"00",X"07",X"1b",X"31",X"48",X"c0",X"a8",X"01",X"07",X"c0",X"a8",X"00",X"03",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"f6",X"4d",X"2f",X"21");
 
 BEGIN
 
@@ -127,6 +133,8 @@ BEGIN
           WrU => WrU,
           RXER => RXER,
           RXEOP => RXEOP,
+          RXER_out => RXER_out,
+          RXEOP_out => RXEOP_out,
           TX_PROTOCOL => TX_PROTOCOL,
           RX_PROTOCOL => RX_PROTOCOL
         );
@@ -190,8 +198,24 @@ BEGIN
       else
         RdU <= '0';
         wait for CLK_period;
-
       end if;
    end process;
 
+   RX_proc: process
+   begin
+    wait for 1000 ns;
+    for i in 0 to 68 loop
+      RXDU <= RX_DATA(i);
+      WrU <= '0';
+      wait for CLK_period * 9;
+      WrU <= '1';
+      wait for CLK_period * 1;
+    end loop;
+    WrU <= '0';
+    wait for CLK_period * 20;
+    RXEOP <= '1';
+    wait for CLK_period;
+    RXEOP <= '0';
+    wait;
+   end process;
 END;
