@@ -698,13 +698,14 @@ begin
 -- DEBUG: forward data to PHY to UART
 --	UART_DIN <= MAC_TXDU;
 --	UART_WR <= MAC_RdU;
-	UART_DIN <= MAC_RXDC;
-	UART_WR <= MAC_WrC;
+	--UART_DIN <= MAC_RXDC;
+	--UART_WR <= MAC_WrC;
   --UART_DIN <= MAC_RXDU;
   --UART_WR <= MAC_WrU;
---  UART_DIN <= ARP_RXDU;
---  UART_WR <= ARP_WrU;
-
+  --UART_DIN <= ARP_TXDU;
+  --UART_WR <= ARP_RdU;
+  UART_DIN <= MAC_TXDU;
+  UART_WR <= MAC_RdU;
 	--UART_DIN(7 downto 4) <= X"0";
 	--UART_DIN(3 downto 0) <= PHY_RXD;
 	--UART_WR <= PHY_RXDV and MAC_RXCLK_f;

@@ -172,7 +172,7 @@ begin
           end if;
 
         when MACLookUp =>
-          if (MACLOokUP_OutputValid = '1') then
+          if (MACLookUp_OutputValid = '1') then
             TX_state <= Header;
             TX_counter <= 0;
           end if;
@@ -272,6 +272,7 @@ begin
     end if;
   end process;
 
+  MACLookUp_InputIP <= DST_IP_ADDR_buf;
   DST_IP_ADDR_buf_proc: process (CLK)
   begin
     if (rising_edge(CLK)) then

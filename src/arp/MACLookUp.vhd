@@ -74,7 +74,7 @@ begin
     if (State /= WaitForResponse) then
       TimeOutCounter <= 0;
     elsif (rising_edge (CLK)) then
-      if (TimeOut = '0') then
+      if (TimeOut = '0' and CLK_1K = '1') then
         TimeOutCounter <= TimeOutCounter + 1;
       end if;
     end if;
@@ -85,6 +85,7 @@ begin
   begin
     if (nRST = '0') then
       State <= Idle;
+      InputIP_buf <= (X"00",X"00",X"00",X"00");
     elsif (rising_edge(CLK)) then
       case State is
         when Idle =>
