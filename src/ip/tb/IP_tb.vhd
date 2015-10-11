@@ -64,6 +64,9 @@ ARCHITECTURE behavior OF IP_tb IS
          WrU : IN  std_logic;
          RXER : IN  std_logic;
          RXEOP : IN  std_logic;
+			   RXER_out : OUT  std_logic;
+         RXEOP_out : OUT  std_logic;
+         RX_SRC_IP_ADDR : out IP_ADDR_TYPE;
          TX_PROTOCOL : IN  L4_PROTOCOL;
          RX_PROTOCOL : OUT  L4_PROTOCOL
         );
@@ -99,13 +102,14 @@ ARCHITECTURE behavior OF IP_tb IS
    signal RX_PROTOCOL : L4_PROTOCOL;
    signal RXER_out : std_logic;
    signal RXEOP_out : std_logic;
+   signal RX_SRC_IP_ADDR : IP_ADDR_TYPE;
 
    -- Clock period definitions
    constant CLK_period : time := 10 ns;
 
 
    type RX_DATA_TYPE is array (0 to 68) of std_logic_vector(7 downto 0);
-   signal RX_DATA: RX_DATA_TYPE := (X"45",X"00",X"00",X"41",X"00",X"00",X"00",X"00",X"07",X"1b",X"31",X"48",X"c0",X"a8",X"01",X"07",X"c0",X"a8",X"00",X"03",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"f6",X"4d",X"2f",X"21");
+   signal RX_DATA: RX_DATA_TYPE := (X"45",X"00",X"00",X"41",X"00",X"00",X"00",X"00",X"07",X"1b",X"31",X"48",X"c0",X"a8",X"00",X"03",X"c0",X"a8",X"01",X"07",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"00",X"f6",X"4d",X"2f",X"21");
 
 BEGIN
 
@@ -135,6 +139,7 @@ BEGIN
           RXEOP => RXEOP,
           RXER_out => RXER_out,
           RXEOP_out => RXEOP_out,
+          RX_SRC_IP_ADDR => RX_SRC_IP_ADDR,
           TX_PROTOCOL => TX_PROTOCOL,
           RX_PROTOCOL => RX_PROTOCOL
         );

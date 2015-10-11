@@ -37,6 +37,8 @@ entity IP is
     RXER_out : out std_logic;
     RXEOP_out : out std_logic;
 
+    RX_SRC_IP_ADDR : out IP_ADDR_TYPE;
+
     TX_PROTOCOL : in L4_PROTOCOL;
     RX_PROTOCOL : out L4_PROTOCOL
   );
@@ -54,6 +56,15 @@ architecture Behavioral of IP is
       REQ : in  STD_LOGIC;
       SELB : in STD_LOGIC;
       CHKSUM : out  STD_LOGIC_VECTOR (7 downto 0)
+    );
+  end component;
+
+  component IPAddressCheck is
+    Port (
+      CLK : in std_logic;
+      EN : in std_logic;
+      DIN : in std_logic_vector(7 downto 0);
+      AddrValid : out std_logic
     );
   end component;
 
@@ -93,6 +104,7 @@ architecture Behavioral of IP is
   signal RX_IP_ERR: std_logic;
   signal RX_IP_ERR_SET: std_logic;
   signal RX_IP_ERR_SET_CHKSUM: std_logic;
+  signal RX_IP_ERR_SET_ADDR: std_logic;
 
   signal RX_LastByte: std_logic_vector (7 downto 0);
 
@@ -104,8 +116,15 @@ architecture Behavioral of IP is
   signal RXCHKSUM_SELB : std_logic;
   signal RXCHKSUM_CHKSUM : std_logic_vector (7 downto 0);
 
-  type RXCHKSUM_states is (Idle, FirstByte, SecondByte, Done);
+  type RXCHKSUM_states is (Idle, WaitForFirstByte, FirstByte, SecondByte, Done);
   signal RXCHKSUM_state : RXCHKSUM_states;
+
+  signal IPAddressCheck_EN : std_logic;
+  signal IPAddressCheck_DIN : std_logic_vector(7 downto 0);
+  signal IPAddressCheck_AddrValid : std_logic;
+
+  signal RX_SRC_IP_ADDR_dummy : IP_ADDR_TYPE;
+
 begin
   TX_TotalLength <= std_logic_vector(unsigned(TX_DataLength) + 20);
 
@@ -444,6 +463,22 @@ begin
     end if;
   end process;
 
+  RX_SRC_IP_ADDR <= RX_SRC_IP_ADDR_dummy;
+  RX_SRC_IP_ADDR_proc: process (CLK)
+  begin
+    if (rising_edge(CLK)) then
+      if (RX_counter = 12 or RX_counter = 13 or RX_counter = 14 or RX_counter = 15) then
+        if (WrU = '1') then
+          RX_SRC_IP_ADDR_dummy(0) <= RX_SRC_IP_ADDR_dummy(1);
+          RX_SRC_IP_ADDR_dummy(1) <= RX_SRC_IP_ADDR_dummy(2);
+          RX_SRC_IP_ADDR_dummy(2) <= RX_SRC_IP_ADDR_dummy(3);
+          RX_SRC_IP_ADDR_dummy(3) <= RXDU;
+        end if;
+      end if;
+    end if;
+  end process;
+
+  RX_IP_ERR_SET <= RX_IP_ERR_SET_CHKSUM or RX_IP_ERR_SET_ADDR;
   RX_IP_ERR_proc: process (RX_state, CLK)
   begin
     if (RX_state = Reset) then
@@ -506,9 +541,11 @@ begin
       case RXCHKSUM_state is
         when Idle =>
           if (RX_state = Data) then
-            RXCHKSUM_state <= FirstByte;
+            RXCHKSUM_state <= WaitForFirstByte;
+            RXCHKSUM_REQ <= '1';
           end if;
-          RXCHKSUM_REQ <= '1';
+        when WaitForFirstByte =>
+          RXCHKSUM_state <= FirstByte;
         when FirstByte =>
           RXCHKSUM_state <= SecondByte;
         when SecondByte =>
@@ -528,6 +565,15 @@ begin
     end if;
   end process;
 
+  IPAddressCheck_inst : IPAddressCheck
+  port map (
+    CLK => CLK,
+    EN => IPAddressCheck_EN,
+    DIN => IPAddressCheck_DIN,
+    AddrValid => IPAddressCheck_AddrValid
+  );
 
-
+  IPAddressCheck_EN <= '1' when ((RX_counter = 16 or RX_counter = 17 or RX_counter = 18 or RX_counter = 19) and WrU = '1') else '0';
+  IPAddressCheck_DIN <= RXDU;
+  RX_IP_ERR_SET_ADDR <= '1' when (RX_counter = 20 and IPAddressCheck_AddrValid = '0') else '0';
 end Behavioral;

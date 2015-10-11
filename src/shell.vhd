@@ -263,6 +263,7 @@ architecture Behavioral of shell is
     RXEOP : in std_logic;
     RXER_out : out std_logic;
     RXEOP_out : out std_logic;
+    RX_SRC_IP_ADDR : out IP_ADDR_TYPE;
 
     TX_PROTOCOL : in L4_PROTOCOL;
     RX_PROTOCOL : out L4_PROTOCOL
@@ -397,6 +398,7 @@ architecture Behavioral of shell is
 	signal IP_RXEOP_out: std_logic;
 	signal TX_L4_PROTOCOL: L4_PROTOCOL;
 	signal RX_L4_PROTOCOL: L4_PROTOCOL;
+  signal IP_RX_SRC_IP_ADDR: IP_ADDR_TYPE;
 
 	--- DEBUG
 	signal flip : std_logic;
@@ -648,6 +650,7 @@ begin
 		RXEOP => IP_RXEOP,
 		RXER_out => IP_RXER_out,
 		RXEOP_out => IP_RXEOP_out,
+    RX_SRC_IP_ADDR => IP_RX_SRC_IP_ADDR;
 
 		TX_PROTOCOL => TX_L4_PROTOCOL,
 		RX_PROTOCOL => RX_L4_PROTOCOL
