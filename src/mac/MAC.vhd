@@ -271,7 +271,7 @@ begin
   TXIDLE <= '1' when TX_state = Idle else '0';
 
   TXDU <= TXDU_dummy;
-  TX_DATA: process (TX_state, TX_counter, TXCRC_CRC)
+  TX_DATA: process (TX_state, TX_counter, TXCRC_CRC, DST_MAC_ADDR, TX_PROTOCOL, TXDV, TXDC)
   begin
     case TX_state is
       when Idle =>

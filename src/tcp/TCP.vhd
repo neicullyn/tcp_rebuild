@@ -30,8 +30,8 @@ entity TCP is
       -- TXD to the underlying module
       TXDU : out std_logic_vector(7 downto 0);
       TXEN : out std_logic;
-      TXIDLE_in : in std_logic;
       RdU : in std_logic;
+      TX_DataLength: std_logic_vector(15 downto 0);
 
       -- RXD from the underlying module
       RXDU : in std_logic_vector(7 downto 0);

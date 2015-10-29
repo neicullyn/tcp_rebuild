@@ -12,16 +12,19 @@ entity Collector_L34 is
     DST_IP_ADDR: out IP_ADDR_TYPE;
     RdU : in STD_LOGIC;
     TX_PROTOCOL : out L4_PROTOCOL;
+    TX_DataLength: out STD_LOGIC_VECTOR(15 downto 0);
 
     TXDC_TCP : in  STD_LOGIC_VECTOR (7 downto 0);
     TXDV_TCP : in  STD_LOGIC;
     DST_IP_ADDR_TCP : in IP_ADDR_TYPE;
     RdC_TCP : out  STD_LOGIC;
+    TX_DataLength_TCP: in STD_LOGIC_VECTOR(15 downto 0);
 
     TXDC_UDP : in  STD_LOGIC_VECTOR (7 downto 0);
     TXDV_UDP : in  STD_LOGIC;
     DST_IP_ADDR_UDP : in IP_ADDR_TYPE;
-    RdC_UDP : out  STD_LOGIC
+    RdC_UDP : out  STD_LOGIC;
+    TX_DataLength_UDP : in STD_LOGIC_VECTOR(15 downto 0)
   );
 end Collector_L34;
 
@@ -44,9 +47,11 @@ begin
           when Idle =>
             if (TXDV_TCP = '1') then
               TX_PROTOCOL_dummy <= TCP;
+              TX_DataLength <= TX_DataLength_TCP;
               state <= Busy;
             elsif (TXDV_UDP = '1') then
               TX_PROTOCOL_dummy <= UDP;
+              TX_DataLength <= TX_DataLength_UDP;
               state <= Busy;
             end if;
 

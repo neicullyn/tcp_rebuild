@@ -310,75 +310,6 @@ architecture Behavioral of shell is
 	);
 	END COMPONENT;
 
-  COMPONENT Collector_L34
-  PORT(
-    CLK : in  STD_LOGIC;
-    nRST : in  STD_LOGIC;
-
-    TXDU : out  STD_LOGIC_VECTOR (7 downto 0);
-    TXEN : out  STD_LOGIC;
-    DST_IP_ADDR: out IP_ADDR_TYPE;
-    RdU : in STD_LOGIC;
-    TX_PROTOCOL : out L4_PROTOCOL;
-    TX_DataLength: out STD_LOGIC_VECTOR(15 downto 0);
-
-    TXDC_TCP : in  STD_LOGIC_VECTOR (7 downto 0);
-    TXDV_TCP : in  STD_LOGIC;
-    DST_IP_ADDR_TCP : in IP_ADDR_TYPE;
-    RdC_TCP : out  STD_LOGIC;
-    TX_DataLength_TCP: in STD_LOGIC_VECTOR(15 downto 0);
-
-    TXDC_UDP : in  STD_LOGIC_VECTOR (7 downto 0);
-    TXDV_UDP : in  STD_LOGIC;
-    DST_IP_ADDR_UDP : in IP_ADDR_TYPE;
-    RdC_UDP : out  STD_LOGIC;
-    TX_DataLength_UDP: in STD_LOGIC_VECTOR(15 downto 0)
-  );
-  END COMPONENT;
-
-  COMPONENT Dispatcher_L34
-  PORT(
-    CLK : in  STD_LOGIC;
-    nRST : in  STD_LOGIC;
-    RXDU : in  STD_LOGIC_VECTOR (7 downto 0);
-    WrU : in  STD_LOGIC;
-    RXER : in STD_LOGIC;
-    RXEOP : in STD_LOGIC;
-    RX_PROTOCOL : in L4_PROTOCOL;
-    RX_SRC_IP_ADDR : in IP_ADDR_TYPE;
-    RXDC_TCP : out  STD_LOGIC_VECTOR (7 downto 0);
-    WrC_TCP : out  STD_LOGIC;
-    RXER_TCP : out STD_LOGIC;
-    RXEOP_TCP : out STD_LOGIC;
-    RX_SRC_IP_ADDR_TCP : out IP_ADDR_TYPE;
-    RXDC_UDP : out  STD_LOGIC_VECTOR (7 downto 0);
-    WrC_UDP : out  STD_LOGIC;
-    RXER_UDP : out STD_LOGIC;
-    RXEOP_UDP : out STD_LOGIC;
-    RX_SRC_IP_ADDR_UDP : out IP_ADDR_TYPE
-  );
-  END COMPONENT;
-
-  COMPONENT TCP
-  PORT(
-    CLK : in std_logic;
-    nRST : in std_logic;
-
-    TXDU : out std_logic_vector(7 downto 0);
-    TXEN : out std_logic;
-    RdU : in std_logic;
-    TCP_TX_DataLength : out std_logic_vector(15 downto 0);
-
-    RXDU : in std_logic_vector(7 downto 0);
-    WrU : in std_logic;
-    RXER : in std_logic;
-    RXEOP : in std_logic;
-
-    RX_SRC_IP_ADDR : in IP_ADDR_TYPE;
-    TX_DST_IP_ADDR : out IP_ADDR_TYPE
-  );
-  END COMPONENT;
-
 	signal nRST : std_logic;
 	signal CLK_1K : std_logic;
 
@@ -467,18 +398,7 @@ architecture Behavioral of shell is
 	signal IP_RXEOP_out: std_logic;
 	signal TX_L4_PROTOCOL: L4_PROTOCOL;
 	signal RX_L4_PROTOCOL: L4_PROTOCOL;
-  signal IP_RX_SRC_IP_ADDR: IP_ADDR_TYPE;
-
-  signal TCP_TXDU: std_logic_vector(7 downto 0);
-  signal TCP_TXEN: std_logic;
-  signal TCP_RdU: std_logic;
-  signal TCP_RXDU: std_logic_vector(7 downto 0);
-  signal TCP_WrU: std_logic;
-  signal TCP_RXER: std_logic;
-  signal TCP_RXEOP: std_logic;
-  signal TCP_RX_SRC_IP_ADDR: IP_ADDR_TYPE;
-  signal TCP_TX_DST_IP_ADDR: IP_ADDR_TYPE;
-  signal TCP_TX_DataLength: std_logic_vector(15 downto 0);
+   signal IP_RX_SRC_IP_ADDR: IP_ADDR_TYPE;
 
 	--- DEBUG
 	signal flip : std_logic;
@@ -562,11 +482,9 @@ begin
 
 	process (CLK)
 	begin
-    if (rising_edge(CLK)) then
-  		if(BTN_r(0) = '1') then
-  			flip <= not flip;
-  		end if;
-    end if;
+		if(BTN_r(0) = '1') then
+			flip <= not flip;
+		end if;
 	end process;
 
 	process (nRST, CLK)
@@ -732,7 +650,7 @@ begin
 		RXEOP => IP_RXEOP,
 		RXER_out => IP_RXER_out,
 		RXEOP_out => IP_RXEOP_out,
-    RX_SRC_IP_ADDR => IP_RX_SRC_IP_ADDR,
+      RX_SRC_IP_ADDR => IP_RX_SRC_IP_ADDR,
 
 		TX_PROTOCOL => TX_L4_PROTOCOL,
 		RX_PROTOCOL => RX_L4_PROTOCOL
@@ -774,70 +692,12 @@ begin
 		RXEOP_IP => IP_RXEOP
 	);
 
-  Collector_L34_inst: Collector_L34 PORT MAP(
-    CLK => CLK,
-    nRST => nRST,
-    TXDU => IP_TXDC,
-    TXEN => IP_TXDV,
-    DST_IP_ADDR => IP_DST_IP_ADDR,
-    RdU => IP_RdC,
-    TX_PROTOCOL => TX_L4_PROTOCOL,
-    TX_DataLength => IP_TX_DataLength,
-
-    TXDC_TCP => TCP_TXDU,
-    TXDV_TCP => TCP_TXEN,
-    DST_IP_ADDR_TCP => TCP_TX_DST_IP_ADDR,
-    RdC_TCP => TCP_RdU,
-    TX_DataLength_TCP => TCP_TX_DataLength,
-
-    TXDC_UDP => X"00",
-    TXDV_UDP => '0',
-    DST_IP_ADDR_UDP => (X"00", X"00", X"00", X"00"),
-    RdC_UDP => open,
-    TX_DataLength_UDP => X"0000"
-  );
-
-  Dispatcher_L34_inst: Dispatcher_L34 PORT MAP(
-    CLK => CLK,
-    nRST => nRST,
-    RXDU => IP_RXDC,
-    WrU => IP_WrC,
-    RXER => IP_RXER_out,
-    RXEOP => IP_RXEOP_out,
-    RX_PROTOCOL => RX_L4_PROTOCOL,
-    RX_SRC_IP_ADDR => TCP_RX_SRC_IP_ADDR,
-    RXDC_TCP => TCP_RXDU,
-    WrC_TCP => TCP_WrU,
-    RXER_TCP => TCP_RXER,
-    RXEOP_TCP => TCP_RXEOP,
-    RX_SRC_IP_ADDR_TCP => TCP_RX_SRC_IP_ADDR,
-    RXDC_UDP => open,
-    WrC_UDP => open,
-    RXER_UDP => open,
-    RXEOP_UDP => open,
-    RX_SRC_IP_ADDR_UDP => open
-  );
-
-  TCP_inst: TCP PORT MAP (
-    CLK => CLK,
-    nRST => nRST,
-    TXDU => TCP_TXDU,
-    TXEN => TCP_TXEN,
-    RdU => TCP_RdU,
-    RXDU  => TCP_RXDU,
-    WrU => TCP_WrU,
-    RXER => TCP_RXER,
-    RXEOP => TCP_RXEOP,
-    RX_SRC_IP_ADDR => TCP_RX_SRC_IP_ADDR,
-    TX_DST_IP_ADDR => TCP_TX_DST_IP_ADDR
-  );
-
-	--IP_TXDC <= UART_DOUT;
-	--IP_TXDV <= UART_DOUTV;
-	--UART_RD <= IP_RdC;
+	IP_TXDC <= UART_DOUT;
+	IP_TXDV <= UART_DOUTV;
+	UART_RD <= IP_RdC;
 
 	IP_TX_DataLength <= X"0001";
-	--IP_DST_IP_ADDR <= VAIO_IP_ADDR;
+	IP_DST_IP_ADDR <= VAIO_IP_ADDR;
 -- DEBUG: forward data to PHY to UART
 --	UART_DIN <= MAC_TXDU;
 --	UART_WR <= MAC_RdU;
