@@ -13,20 +13,29 @@ entity tcp_checksum_calc is
 end tcp_checksum_calc;
 
 architecture Behavioral of tcp_checksum_calc is
-	signal result : unsigned(31 downto 0);
+	signal result : unsigned(15 downto 0);
+	signal sum : unsigned(16 downto 0);
+	signal shadow : unsigned(15 downto 0);
 begin
+	shadow(0) <= sum(16);
+	shadow(15 downto 1) <= "000000000000000";
+	sum <= '0' & result + unsigned('0' & feed);
 	process (CLK, reset)
 	begin
 		if (rising_edge(CLK)) then
 			if (reset = '1') then
-				result <= X"00000000";
+				result <= X"0000";
 			else
 				if (calc = '1') then
-					result <= result + unsigned(feed);
+					if (sum = '1' & X"FFFF") then
+						result <= X"0001";
+					else
+						result <= sum(15 downto 0) + shadow;
+					end if;
 				end if;
 			end if;
 		end if;
 	end process;
 	valid <= '1' when result = X"FFFF" else '0';
-	checksum <= not std_logic_vector(result(15 downto 0) + result(31 downto 16));
+	checksum <= not std_logic_vector(result(15 downto 0));
 end Behavioral;

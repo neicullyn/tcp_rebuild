@@ -56,7 +56,7 @@ architecture Behavioral of TCP is
     );
   end component;
 
- 	type RX_states is (Reset, Header, Data, Handle, ERR);
+ 	type RX_states is (Reset, Header, Data, Handle, Err);
 	signal RX_state : RX_states;
 	signal RX_counter : unsigned(15 downto 0);
 	signal RX_counter_inc : unsigned(15 downto 0);
@@ -149,9 +149,12 @@ begin
   				end if;
 
   			when Handle =>
-  				RX_state <= Reset;
-
-  			when ERR =>
+          if (RX_HANDLE_state = Err) then
+            RX_state <= Err;
+          elsif (RX_HANDLE_state = Done) then
+  				  RX_state <= Reset;
+          end if;
+  			when Err =>
   				RX_state <= Reset;
   		end case;
   	end if;
@@ -241,7 +244,7 @@ begin
 
   -- RX_TCP_CHECKSUM
   RX_CHKSUM_RESET <= '1' when RX_state = Reset else '0';
-  RX_TCP_CHECKSUM_control_proc : process (RX_state, RX_HANDLE_state, RX_CalcChecksum_state, RXDU_BUF, RXDU)
+  RX_TCP_CHECKSUM_control_proc : process (WrU, RX_state, RX_HANDLE_state, RX_CalcChecksum_state, RXDU_BUF, RXDU)
   begin
     RX_CHKSUM_FEED <= X"0000";
     RX_CHKSUM_CALC <= '0';
@@ -261,7 +264,7 @@ begin
           case RX_CalcChecksum_state is
             when Reset =>
             when HandleOddData =>
-              if (RX_counter(0) = '0') then
+              if (RX_counter(0) = '1') then
                 RX_CHKSUM_FEED <= RXDU_BUF & X"00";
                 RX_CHKSUM_CALC <= '1';
               end if;
@@ -294,26 +297,28 @@ begin
   begin
     if (RX_state = Reset) then
       RX_CalcChecksum_state <= Reset;
-    elsif (RX_HANDLE_state = CalcChecksum) then
-      case RX_CalcChecksum_state is
-        when Reset =>
-          RX_CalcChecksum_state <= HandleOddData;
-        when HandleOddData =>
-          RX_CalcChecksum_state <= SrcAddr0;
-        when SrcAddr0 =>
-          RX_CalcChecksum_state <= SrcAddr1;
-        when SrcAddr1 =>
-          RX_CalcChecksum_state <= DstAddr0;
-        when DstAddr0 =>
-          RX_CalcChecksum_state <= DstAddr1;
-        when DstAddr1 =>
-          RX_CalcChecksum_state <= Protocol;
-        when Protocol =>
-          RX_CalcChecksum_state <= TCPLength;
-        when TCPLength =>
-          RX_CalcChecksum_state <= Done;
-        when Done =>
-      end case;
+    elsif (rising_edge(CLK)) then
+      if (RX_HANDLE_state = CalcChecksum) then
+        case RX_CalcChecksum_state is
+          when Reset =>
+            RX_CalcChecksum_state <= HandleOddData;
+          when HandleOddData =>
+            RX_CalcChecksum_state <= SrcAddr0;
+          when SrcAddr0 =>
+            RX_CalcChecksum_state <= SrcAddr1;
+          when SrcAddr1 =>
+            RX_CalcChecksum_state <= DstAddr0;
+          when DstAddr0 =>
+            RX_CalcChecksum_state <= DstAddr1;
+          when DstAddr1 =>
+            RX_CalcChecksum_state <= Protocol;
+          when Protocol =>
+            RX_CalcChecksum_state <= TCPLength;
+          when TCPLength =>
+            RX_CalcChecksum_state <= Done;
+          when Done =>
+        end case;
+      end if;
     end if;
   end process;
 

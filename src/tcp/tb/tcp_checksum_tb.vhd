@@ -45,7 +45,6 @@ ARCHITECTURE behavior OF tcp_checksum_tb IS
          calc : IN  std_logic;
          reset : IN  std_logic;
          CLK : IN  std_logic;
-         start : IN  std_logic;
          valid : OUT  std_logic;
          checksum : OUT  std_logic_vector(15 downto 0)
         );
@@ -57,7 +56,6 @@ ARCHITECTURE behavior OF tcp_checksum_tb IS
    signal calc : std_logic := '0';
    signal reset : std_logic := '0';
    signal CLK : std_logic := '0';
-   signal start : std_logic := '0';
 
  	--Outputs
    signal valid : std_logic;
@@ -74,7 +72,6 @@ BEGIN
           calc => calc,
           reset => reset,
           CLK => CLK,
-          start => start,
           valid => valid,
           checksum => checksum
         );

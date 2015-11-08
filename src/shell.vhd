@@ -805,7 +805,7 @@ begin
     RXER => IP_RXER_out,
     RXEOP => IP_RXEOP_out,
     RX_PROTOCOL => RX_L4_PROTOCOL,
-    RX_SRC_IP_ADDR => TCP_RX_SRC_IP_ADDR,
+    RX_SRC_IP_ADDR => IP_RX_SRC_IP_ADDR,
     RXDC_TCP => TCP_RXDU,
     WrC_TCP => TCP_WrU,
     RXER_TCP => TCP_RXER,
