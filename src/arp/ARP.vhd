@@ -127,7 +127,7 @@ begin
   TXEN <= '1' when TX_state = Busy else '0';
   TXIDLE <= '1' when (TX_state = Idle and RX_NEED_RESPONSE = '0') else '1';
 
-  TX_DATA: process (TX_state, TX_counter, TX_IS_RESPONSE)
+  TX_DATA: process (TX_state, TX_counter, TX_IS_RESPONSE, request_data, response_data)
   begin
     case TX_state is
       when Idle =>
@@ -312,7 +312,7 @@ begin
     end if;
   end process;
 
-  RX_NEED_RESPONSE_SET_proc: process (CLK)
+  RX_NEED_RESPONSE_SET_proc: process (RX_state, RX_OP0_dummy, RX_OP1_dummy, TPA_buf)
   begin
     if (
       RX_state = EOP and

@@ -69,7 +69,7 @@ begin
     end if;
   end process;
 
-  TimeOut_proc: process (CLK)
+  TimeOut_proc: process (CLK, State)
   begin
     if (State /= WaitForResponse) then
       TimeOutCounter <= 0;

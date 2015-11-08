@@ -112,6 +112,7 @@ architecture Behavioral of IP is
   signal RXCHKSUM_INIT : std_logic;
   signal RXCHKSUM_D_VALID : std_logic;
   signal RXCHKSUM_CALC : std_logic;
+  signal RXCHKSUM_CALC_D : std_logic;
   signal RXCHKSUM_REQ : std_logic;
   signal RXCHKSUM_SELB : std_logic;
   signal RXCHKSUM_CHKSUM : std_logic_vector (7 downto 0);
@@ -314,7 +315,7 @@ begin
     CHKSUM => TXCHKSUM_CHKSUM
   );
 
-  process (TX_state, TX_counter, DST_IP_ADDR_buf, TXDU_dummy)
+  process (TX_state, TX_counter, DST_IP_ADDR_buf, TXDU_dummy, DST_IP_ADDR)
   begin
     TXCHKSUM_DATA <= TXDU_dummy;
     if (TX_state = ChecksumSrc) then
@@ -497,14 +498,20 @@ begin
     nRST => nRST,
     INIT => RXCHKSUM_INIT,
     D_VALID => RXCHKSUM_D_VALID,
-    CALC => RXCHKSUM_CALC,
+    CALC => RXCHKSUM_CALC_D,
     REQ => RXCHKSUM_REQ,
     SELB => RXCHKSUM_SELB,
     CHKSUM => RXCHKSUM_CHKSUM
   );
 
   RXCHKSUM_DATA <= RXDU;
-  RXCHKSUM_control: process (RX_state, RX_counter)
+  process (CLK)
+  begin
+    if (rising_edge(CLK)) then
+      RXCHKSUM_CALC_D <= RXCHKSUM_CALC;
+    end if;
+  end process;
+  RXCHKSUM_control: process (RX_state, RX_counter, RXCHKSUM_state, WrU)
   begin
     if (RX_state = Reset) then
       RXCHKSUM_INIT <= '1';
@@ -513,16 +520,15 @@ begin
     end if;
 
     RXCHKSUM_CALC <= '0';
-    if (RX_state = Header) then
+    if (RX_state = Header and WrU = '1') then
       if (RX_counter mod 2 = 1) then
         RXCHKSUM_CALC <= '1';
       end if;
     end if;
 
-    if (RX_state = Header) then
+    RXCHKSUM_D_VALID <= '0';
+    if (RX_state = Header and WrU = '1') then
       RXCHKSUM_D_VALID <= '1';
-    else
-      RXCHKSUM_D_VALID <= '0';
     end if;
 
     if (RX_counter mod 2 = 1 or RXCHKSUM_state = FirstByte) then

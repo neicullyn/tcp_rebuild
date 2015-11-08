@@ -168,24 +168,26 @@ BEGIN
 
    PHY_TXCLK_process :process
    begin
+    wait for PHY_period / 4;
 		PHY_TXCLK <= '0';
 		wait for PHY_period/2;
 		PHY_TXCLK <= '1';
-		wait for PHY_period/2;
+		wait for PHY_period/4;
    end process;
 
    PHY_RXCLK_process :process
    begin
+    wait for PHY_period / 4;
 		PHY_RXCLK <= '0';
 		wait for PHY_period/2;
 		PHY_RXCLK <= '1';
-		wait for PHY_period/2;
+		wait for PHY_period/4;
    end process;
 
 	RX_proc: process
- constant RX_DATA_LENGTH: integer :=182;
+constant RX_DATA_LENGTH: integer :=174;
 type RX_DATA_TYPE is array (0 to (RX_DATA_LENGTH - 1)) of std_logic_vector(3 downto 0);
-constant RX_DATA: RX_DATA_TYPE := (X"5",X"5",X"5",X"5",X"5",X"5",X"5",X"5",X"5",X"5",X"5",X"5",X"5",X"5",X"5",X"D",X"f",X"f",X"f",X"f",X"f",X"f",X"f",X"f",X"f",X"f",X"f",X"f",X"8",X"4",X"8",X"4",X"8",X"4",X"8",X"4",X"8",X"4",X"8",X"4",X"8",X"0",X"0",X"0",X"5",X"4",X"0",X"0",X"0",X"0",X"1",X"4",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"7",X"0",X"b",X"1",X"1",X"3",X"8",X"4",X"0",X"c",X"8",X"a",X"1",X"0",X"7",X"0",X"0",X"c",X"8",X"a",X"0",X"0",X"3",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"6",X"f",X"d",X"4",X"f",X"2",X"1",X"2");
+constant RX_DATA: RX_DATA_TYPE := (X"5",X"5",X"5",X"5",X"5",X"5",X"5",X"5",X"5",X"5",X"5",X"5",X"5",X"5",X"5",X"D",X"8",X"4",X"8",X"4",X"8",X"4",X"8",X"4",X"8",X"4",X"8",X"4",X"4",X"5",X"2",X"4",X"9",X"4",X"2",X"6",X"C",X"6",X"2",X"6",X"8",X"0",X"0",X"0",X"5",X"4",X"0",X"0",X"0",X"0",X"E",X"2",X"0",X"0",X"0",X"0",X"0",X"4",X"0",X"0",X"0",X"4",X"6",X"0",X"7",X"B",X"F",X"6",X"0",X"C",X"8",X"A",X"1",X"0",X"3",X"0",X"0",X"C",X"8",X"A",X"1",X"0",X"7",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"5",X"0",X"0",X"F",X"F",X"C",X"F",X"0",X"8",X"9",X"B",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"0",X"B",X"A",X"D",X"C",X"F",X"E",X"B",X"A",X"D",X"C",X"F",X"E",X"B",X"A",X"D",X"C",X"F",X"E",X"B",X"A",X"B",X"A",X"B",X"A",X"2",X"1",X"4",X"3",X"6",X"5",X"8",X"7",X"0",X"9",X"8",X"B",X"A",X"4",X"D",X"2",X"0",X"6");
 	begin
     wait for 1000 ns;
 	 PHY_RXDV <= '1';

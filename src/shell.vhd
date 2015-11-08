@@ -367,7 +367,7 @@ architecture Behavioral of shell is
     TXDU : out std_logic_vector(7 downto 0);
     TXEN : out std_logic;
     RdU : in std_logic;
-    TCP_TX_DataLength : out std_logic_vector(15 downto 0);
+    TX_DataLength : out std_logic_vector(15 downto 0);
 
     RXDU : in std_logic_vector(7 downto 0);
     WrU : in std_logic;
@@ -821,10 +821,13 @@ begin
   TCP_inst: TCP PORT MAP (
     CLK => CLK,
     nRST => nRST,
+
     TXDU => TCP_TXDU,
     TXEN => TCP_TXEN,
     RdU => TCP_RdU,
     RXDU  => TCP_RXDU,
+    TX_DataLength => TCP_TX_DataLength,
+
     WrU => TCP_WrU,
     RXER => TCP_RXER,
     RXEOP => TCP_RXEOP,
@@ -836,7 +839,7 @@ begin
 	--IP_TXDV <= UART_DOUTV;
 	--UART_RD <= IP_RdC;
 
-	IP_TX_DataLength <= X"0001";
+	--IP_TX_DataLength <= X"0001";
 	--IP_DST_IP_ADDR <= VAIO_IP_ADDR;
 -- DEBUG: forward data to PHY to UART
 --	UART_DIN <= MAC_TXDU;
