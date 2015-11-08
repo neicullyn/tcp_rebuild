@@ -106,6 +106,42 @@ architecture Behavioral of TCP is
   type RX_CalcChecksum_states is (Reset, HandleOddData, SrcAddr0, SrcAddr1, DstAddr0, DstAddr1, Protocol, TCPLength, Done);
   signal RX_CalcChecksum_state: RX_CalcChecksum_states;
 
+  type TX_states is (Reset, Header, Data, Handle, Err);
+  signal TX_state : RX_states;
+  signal TX_counter : unsigned(15 downto 0);
+  signal TX_counter_inc : unsigned(15 downto 0);
+
+  -- Input for TX
+  signal TX_SRC_IP : IP_ADDR_TYPE;
+  signal TX_DST_IP : IP_ADDR_TYPE;
+  signal TX_TCP_LENGTH : std_logic_vector(15 downto 0);
+
+  signal TX_SRC_PORT : std_logic_vector(15 downto 0);
+  signal TX_DST_PORT : std_logic_vector(15 downto 0);
+
+  signal TX_SEQ_NUM_BITS : std_logic_vector(31 downto 0);
+  signal TX_ACK_NUM_BITS : std_logic_vector(31 downto 0);
+
+  signal TX_DATA_OFFSET : std_logic_vector(3 downto 0);
+
+  signal TX_ACK_BIT : std_logic;
+  signal TX_RST_BIT : std_logic;
+  signal TX_SYN_BIT : std_logic;
+  signal TX_FIN_BIT : std_logic;
+  signal TX_CTRL_BITS : std_logic_vector(5 downto 0);
+
+  signal TX_WINDOW : std_logic_vector(15 downto 0);
+  signal TX_CHECKSUM : std_logic_vector(15 downto 0);
+  signal TX_URGENT : std_logic_vector(15 downto 0);
+
+  signal TX_DATA_CHECKSUM : std_logic_vector(15 downto 0);
+
+  type TX_PSEUDO_HEADER_TYPE is array (0 to 11) of std_logic_vector(7 downto 0);
+  signal TX_PSEUDO_HEADER : TX_PSEUDO_HEADER_TYPE;
+
+  type TX_HEADER_TYPE is array (0 to 19) of std_logic_vector(7 downto 0);
+  signal TX_HEADER : TX_HEADER_TYPE;
+
 begin
   RXDU_BUF_proc : process (CLK)
   begin
@@ -116,7 +152,7 @@ begin
     end if;
   end process;
 
-  RX_counter_inc <= (RX_counter + 1) mod 65535;
+  RX_counter_inc <= RX_counter + 1;
   RX_SM : process (nRST, CLK)
   begin
   	if (nRST = '0') then
@@ -323,5 +359,44 @@ begin
   end process;
 
   RX_HANDLE_ERR_CHKSUM <= '1' when (RX_CalcChecksum_state = Done and RX_CHKSUM_VALID ='0') else '0';
+
+  TX_counter_inc <= TX_counter + 1;
+
+  -- TX_PSEUDO_HEADER
+  TX_PSEUDO_HEADER(0 to 3) <= TX_SRC_IP;
+  TX_PSEUDO_HEADER(4 to 7) <= TX_DST_IP;
+  TX_PSEUDO_HEADER(8) <= X"00";
+  TX_PSEUDO_HEADER(9) <= X"06"; -- TCP protocol
+  TX_PSEUDO_HEADER(10) <= TX_TCP_LENGTH(15 downto 8);
+  TX_PSEUDO_HEADER(11) <= TX_TCP_LENGTH(7 downto 0);
+
+  -- TX_HEADER
+  TX_HEADER(0) <= TX_SRC_PORT(15 downto 8);
+  TX_HEADER(1) <= TX_SRC_PORT(8 downto 0);
+
+  TX_HEADER(2) <= TX_DST_PORT(15 downto 8);
+  TX_HEADER(3) <= TX_DST_PORT(8 downto 0);
+
+  TX_HEADER(4) <= TX_SEQ_NUM_BITS(31 downto 24);
+  TX_HEADER(5) <= TX_SEQ_NUM_BITS(23 downto 16);
+  TX_HEADER(6) <= TX_SEQ_NUM_BITS(15 downto 8);
+  TX_HEADER(7) <= TX_SEQ_NUM_BITS(7 downto 0);
+
+  TX_HEADER(8) <= TX_ACK_NUM_BITS(31 downto 24);
+  TX_HEADER(9) <= TX_ACK_NUM_BITS(23 downto 16);
+  TX_HEADER(10) <= TX_ACK_NUM_BITS(15 downto 8);
+  TX_HEADER(11) <= TX_ACK_NUM_BITS(7 downto 0);
+
+  TX_HEADER(12) <= TX_DATA_OFFSET & X"0";
+  TX_HEADER(13) <= "000" & TX_CTRL_BITS;
+
+  TX_HEADER(14) <= TX_WINDOW(15 downto 8);
+  TX_HEADER(15) <= TX_WINDOW(7 downto 0);
+
+  TX_HEADER(16) <= TX_CHECKSUM(15 downto 8);
+  TX_HEADER(17) <= TX_CHECKSUM(7 downto 0);
+
+  TX_HEADER(18) <= TX_URGENT(15 downto 8);
+  TX_HEADER(19) <= TX_URGENT(7 downto 0);
 
 end Behavioral;

@@ -31,38 +31,35 @@ use IEEE.STD_LOGIC_1164.ALL;
 
 entity tcp_make_ack_packet is
 	port (
-			in_src_addr : in std_logic_vector(31 downto 0);
-			in_dst_addr : in std_logic_vector(31 downto 0);
+		in_src_addr : in std_logic_vector(31 downto 0);
+		in_dst_addr : in std_logic_vector(31 downto 0);
 
-			in_src_port : in std_logic_vector(15 downto 0);
-			in_dst_port : in std_logic_vector(15 downto 0);
+		in_src_port : in std_logic_vector(15 downto 0);
+		in_dst_port : in std_logic_vector(15 downto 0);
 
-			in_seq_num : in std_logic_vector(31 downto 0);
-			in_ack_num : in std_logic_vector(31 downto 0);
+		in_seq_num : in std_logic_vector(31 downto 0);
+		in_ack_num : in std_logic_vector(31 downto 0);
 
-			syn : in std_logic;
+		syn : in std_logic;
 
-			fin : in std_loigc;
+		fin : in std_loigc;
 
-			out_src_addr : out std_logic_vector(31 downto 0);
-			out_dst_addr : out std_logic_vector(31 downto 0);
+		out_src_addr : out std_logic_vector(31 downto 0);
+		out_dst_addr : out std_logic_vector(31 downto 0);
 
-			out_src_port : out std_logic_vector(15 downto 0);
-			out_dst_port : out std_logic_vector(15 downto 0);
+		out_src_port : out std_logic_vector(15 downto 0);
+		out_dst_port : out std_logic_vector(15 downto 0);
 
-			out_seq_num : out std_logic_vector(31 downto 0);
-			out_ack_num : out std_logic_vector(31 downto 0);
+		out_seq_num : out std_logic_vector(31 downto 0);
+		out_ack_num : out std_logic_vector(31 downto 0);
 
-			out_data_offset : out std_logic_vector(3 downto 0);
-			out_flags : out std_logic_vector(8 downto 0);
-			out_window_size : out std_logic_vector(15 downto 0);
+		out_data_offset : out std_logic_vector(3 downto 0);
+		out_flags : out std_logic_vector(8 downto 0);
+		out_window_size : out std_logic_vector(15 downto 0);
 
-			out_urgent_pointer : out std_logic_vector(15 downto 0);
+		out_urgent_pointer : out std_logic_vector(15 downto 0)
 
-			);
-
-
-
+	);
 end tcp_make_ack_packet;
 
 architecture Behavioral of tcp_make_ack_packet is
