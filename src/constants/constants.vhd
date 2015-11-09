@@ -12,6 +12,8 @@ package TCP_CONSTANTS is
   constant IP_ADDR: IP_ADDR_TYPE := (X"C0",X"A8",X"01",X"07"); -- 192.168.1.7
   constant VAIO_IP_ADDR: IP_ADDR_TYPE := (X"C0",X"A8",X"01",X"03");
 
+  constant LISTEN_PORT: std_logic_vector(15 downto 0) := X"0050"; -- 80
+
   type L3_PROTOCOL is (IP, ARP, UNKNOWN);
   type ETHERTYPE_CODE_TYPE is array(0 to 1) of std_logic_vector(7 downto 0);
   constant IP_ETHERTYPE_CODE: ETHERTYPE_CODE_TYPE := (X"08", X"00");

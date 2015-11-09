@@ -106,12 +106,13 @@ architecture Behavioral of TCP is
   type RX_CalcChecksum_states is (Reset, HandleOddData, SrcAddr0, SrcAddr1, DstAddr0, DstAddr1, Protocol, TCPLength, Done);
   signal RX_CalcChecksum_state: RX_CalcChecksum_states;
 
-  type TX_states is (Reset, Header, Data, Handle, Err);
-  signal TX_state : RX_states;
+  type TX_states is (Reset, CalcChecksum, Header, Data, Done);
+  signal TX_state : TX_states;
   signal TX_counter : unsigned(15 downto 0);
   signal TX_counter_inc : unsigned(15 downto 0);
 
   -- Input for TX
+  signal TX_start : std_logic;
   signal TX_SRC_IP : IP_ADDR_TYPE;
   signal TX_DST_IP : IP_ADDR_TYPE;
   signal TX_TCP_LENGTH : std_logic_vector(15 downto 0);
@@ -141,6 +142,20 @@ architecture Behavioral of TCP is
 
   type TX_HEADER_TYPE is array (0 to 19) of std_logic_vector(7 downto 0);
   signal TX_HEADER : TX_HEADER_TYPE;
+
+  -- TX_TCP_CHECKSUM_CALC
+  signal TX_CHKSUM_FEED : std_logic_vector(15 downto 0);
+  signal TX_CHKSUM_CALC : std_logic;
+  signal TX_CHKSUM_RESET : std_logic;
+  signal TX_CHKSUM_CLK : std_logic;
+  signal TX_CHKSUM_START : std_logic;
+  signal TX_CHKSUM_CHECKSUM : std_logic_vector(15 downto 0);
+
+  type TX_CalcChecksum_states is (Reset, DataChecksum, PseudoHeader, Header, Done);
+  signal TX_CalcChecksum_state: TX_CalcChecksum_states;
+  signal TX_CalcChecksum_counter: unsigned(3 downto 0);
+  signal TX_CalcChecksum_p1: unsigned(4 downto 0);
+  signal TX_CalcChecksum_p2: unsigned(4 downto 0);
 
 begin
   RXDU_BUF_proc : process (CLK)
@@ -363,8 +378,14 @@ begin
   TX_counter_inc <= TX_counter + 1;
 
   -- TX_PSEUDO_HEADER
-  TX_PSEUDO_HEADER(0 to 3) <= TX_SRC_IP;
-  TX_PSEUDO_HEADER(4 to 7) <= TX_DST_IP;
+  TX_PSEUDO_HEADER(0) <= TX_SRC_IP(0);
+  TX_PSEUDO_HEADER(1) <= TX_SRC_IP(1);
+  TX_PSEUDO_HEADER(2) <= TX_SRC_IP(2);
+  TX_PSEUDO_HEADER(3) <= TX_SRC_IP(3);
+  TX_PSEUDO_HEADER(4) <= TX_DST_IP(0);
+  TX_PSEUDO_HEADER(5) <= TX_DST_IP(1);
+  TX_PSEUDO_HEADER(6) <= TX_DST_IP(2);
+  TX_PSEUDO_HEADER(7) <= TX_DST_IP(3);
   TX_PSEUDO_HEADER(8) <= X"00";
   TX_PSEUDO_HEADER(9) <= X"06"; -- TCP protocol
   TX_PSEUDO_HEADER(10) <= TX_TCP_LENGTH(15 downto 8);
@@ -372,10 +393,10 @@ begin
 
   -- TX_HEADER
   TX_HEADER(0) <= TX_SRC_PORT(15 downto 8);
-  TX_HEADER(1) <= TX_SRC_PORT(8 downto 0);
+  TX_HEADER(1) <= TX_SRC_PORT(7 downto 0);
 
   TX_HEADER(2) <= TX_DST_PORT(15 downto 8);
-  TX_HEADER(3) <= TX_DST_PORT(8 downto 0);
+  TX_HEADER(3) <= TX_DST_PORT(7 downto 0);
 
   TX_HEADER(4) <= TX_SEQ_NUM_BITS(31 downto 24);
   TX_HEADER(5) <= TX_SEQ_NUM_BITS(23 downto 16);
@@ -388,7 +409,13 @@ begin
   TX_HEADER(11) <= TX_ACK_NUM_BITS(7 downto 0);
 
   TX_HEADER(12) <= TX_DATA_OFFSET & X"0";
-  TX_HEADER(13) <= "000" & TX_CTRL_BITS;
+  TX_HEADER(13) <= "00" & TX_CTRL_BITS;
+  TX_CTRL_BITS(5) <= '0'; -- URG
+  TX_CTRL_BITS(4) <= TX_ACK_BIT;
+  TX_CTRL_BITS(3) <= '0'; -- PSH
+  TX_CTRL_BITS(2) <= TX_RST_BIT;
+  TX_CTRL_BITS(1) <= TX_SYN_BIT;
+  TX_CTRL_BITS(0) <= TX_FIN_BIT;
 
   TX_HEADER(14) <= TX_WINDOW(15 downto 8);
   TX_HEADER(15) <= TX_WINDOW(7 downto 0);
@@ -398,5 +425,121 @@ begin
 
   TX_HEADER(18) <= TX_URGENT(15 downto 8);
   TX_HEADER(19) <= TX_URGENT(7 downto 0);
+
+  -- constant fields
+  TX_SRC_IP <= IP_ADDR;
+  TX_SRC_PORT <= LISTEN_PORT;
+  TX_DATA_OFFSET <= X"5";
+  TX_WINDOW <= X"00FF";
+  TX_URGENT <= X"0000";
+
+  TX_SM: process (nRST, CLK)
+  begin
+    if (nRST = '0') then
+      TX_state <= Reset;
+    elsif (rising_edge(CLK)) then
+      case TX_state is
+        when Reset =>
+          if (TX_start = '1') then
+            TX_state <= CalcChecksum;
+          end if;
+        when CalcChecksum =>
+          if (TX_CalcChecksum_state = Done) then
+            TX_state <= Header;
+            TX_counter <= X"0000";
+          end if;
+        when Header =>
+        when Data =>
+        when Done =>
+          TX_state <= Reset;
+      end case;
+    end if;
+  end process;
+
+  TX_TCP_CHECKSUM_CALC : tcp_checksum_calc
+  port map(
+      feed => TX_CHKSUM_FEED,
+      calc => TX_CHKSUM_CALC,
+      reset => TX_CHKSUM_RESET,
+      CLK => CLK,
+      valid => open,
+      checksum => TX_CHKSUM_CHECKSUM
+  );
+
+  TX_CalcChecksum_state_SM : process (CLK, TX_state)
+  begin
+    if (TX_state = Reset) then
+      TX_CalcChecksum_state <= Reset;
+    elsif (rising_edge(CLK)) then
+      if (TX_state = CalcChecksum) then
+        case TX_CalcChecksum_state is
+          when Reset =>
+            TX_CalcChecksum_state <= DataChecksum;
+          when DataChecksum =>
+            TX_CalcChecksum_counter <= "0000";
+            TX_CalcChecksum_state <= PseudoHeader;
+          when PseudoHeader =>
+            if (TX_CalcChecksum_counter = 5) then
+              TX_CalcChecksum_counter <= "0000";
+              TX_CalcChecksum_state <= Header;
+            else
+              TX_CalcChecksum_counter <= TX_CalcChecksum_counter + 1;
+            end if;
+          when Header =>
+            if (TX_CalcChecksum_counter = 9) then
+              TX_CalcChecksum_counter <= "0000";
+              TX_CalcChecksum_state <= Done;
+            else
+              TX_CalcChecksum_counter <= TX_CalcChecksum_counter + 1;
+            end if;
+          when Done =>
+        end case;
+      end if;
+    end if;
+  end process;
+  TX_CalcChecksum_p1 <= TX_CalcChecksum_counter & '0';
+  TX_CalcChecksum_p2 <= TX_CalcChecksum_counter & '1';
+
+  process (TX_CalcChecksum_state, TX_DATA_CHECKSUM, TX_PSEUDO_HEADER, TX_HEADER, TX_CalcChecksum_p1, TX_CalcChecksum_p2)
+  begin
+    case TX_CalcChecksum_state is
+      when Reset =>
+        TX_CHKSUM_FEED <= X"0000";
+        TX_CHKSUM_CALC <= '0';
+        TX_CHKSUM_RESET <= '1';
+      when DataChecksum =>
+        TX_CHKSUM_FEED <= TX_DATA_CHECKSUM;
+        TX_CHKSUM_CALC <= '1';
+        TX_CHKSUM_RESET <= '0';
+      when PseudoHeader =>
+        TX_CHKSUM_FEED(15 downto 8) <= TX_PSEUDO_HEADER(to_integer(TX_CalcChecksum_p1));
+        TX_CHKSUM_FEED(7 downto 0) <= TX_PSEUDO_HEADER(to_integer(TX_CalcChecksum_p2));
+        TX_CHKSUM_CALC <= '1';
+        TX_CHKSUM_RESET <= '0';
+      when Header =>
+        TX_CHKSUM_FEED(15 downto 8) <= TX_HEADER(to_integer(TX_CalcChecksum_p1));
+        TX_CHKSUM_FEED(7 downto 0) <= TX_HEADER(to_integer(TX_CalcChecksum_p2));
+        TX_CHKSUM_CALC <= '1';
+        TX_CHKSUM_RESET <= '0';
+      when Done =>
+        TX_CHKSUM_FEED <= X"0000";
+        TX_CHKSUM_CALC <= '0';
+        TX_CHKSUM_RESET <= '0';
+    end case;
+  end process;
+  TX_CHECKSUM <= TX_CHKSUM_CHECKSUM when TX_CalcChecksum_state = Done else X"0000";
+
+  -- For testing
+  TX_start <= '1';
+  TX_DST_IP <= VAIO_IP_ADDR;
+  TX_TCP_LENGTH <= X"03FC";
+  TX_DST_PORT <= X"0080";
+  TX_SEQ_NUM_BITS <= X"0BCDABCD";
+  TX_ACK_NUM_BITS <= X"0CADCCAD";
+  TX_ACK_BIT <= '1';
+  TX_RST_BIT <= '1';
+  TX_SYN_BIT <= '1';
+  TX_FIN_BIT <= '1';
+  TX_DATA_CHECKSUM <= X"F5F5";
 
 end Behavioral;
