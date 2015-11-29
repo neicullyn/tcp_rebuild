@@ -150,6 +150,7 @@ BEGIN
 
     PUSH <= '0';
     FLUSH <= '0';
+
     CLEAR <= '1';
     wait for CLK_period;
     CLEAR <= '0';
