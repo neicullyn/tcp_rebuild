@@ -61,6 +61,9 @@ ARCHITECTURE behavior OF tcp_fsm_tb IS
       RX_FIN_BIT : in std_logic;
       RX_RST_BIT : in std_logic;
 
+      TX_SEQ_TO_SEND : in unsigned(31 downto 0);
+
+      closed : out std_logic;
       established : out std_logic;
       action  : out CORE_ACTION;
       action_valid : out std_logic;
@@ -84,8 +87,10 @@ ARCHITECTURE behavior OF tcp_fsm_tb IS
    signal RX_SYN_BIT : std_logic := '0';
    signal RX_FIN_BIT : std_logic := '0';
    signal RX_RST_BIT : std_logic := '0';
+   signal TX_SEQ_TO_SEND : unsigned(31 downto 0) := (others => '0');
 
  	--Outputs
+   signal closed : std_logic;
    signal established : std_logic;
    signal action : CORE_ACTION;
    signal action_valid : std_logic;
@@ -112,6 +117,8 @@ BEGIN
           RX_SYN_BIT => RX_SYN_BIT,
           RX_FIN_BIT => RX_FIN_BIT,
           RX_RST_BIT => RX_RST_BIT,
+          TX_SEQ_TO_SEND => TX_SEQ_TO_SEND,
+          closed => closed,
           established => established,
           action => action,
           action_valid => action_valid,
@@ -181,6 +188,54 @@ BEGIN
       assert(action_valid = '1');
       wait for CLK_period;
 
+      -- Responder Close
+      RX_SRC_IP_ADDR <= VAIO_IP_ADDR;
+      RX_SRC_PORT <= VAIO_LISTEN_PORT;
+
+      RX_FIN_BIT <= '1';
+      tcp_state_handle <= '1';
+      wait for CLK_period;
+      RX_FIN_BIT <= '0';
+      tcp_state_handle <= '0';
+
+      assert(established = '0');
+      assert(action = MAKE_ACK);
+      assert(action_valid = '1');
+
+      TX_SEQ_TO_SEND <= X"00121212";
+      wait for CLK_period;
+      assert(action = MAKE_FIN);
+      assert(action_valid = '1');
+
+      wait for CLK_period;
+      assert(action_valid = '0');
+
+      -- Receive ACK, but not for the FIN
+      RX_ACK_NUM <= X"00121210";
+      RX_ACK_BIT <= '1';
+      tcp_state_handle <= '1';
+      wait for CLK_period;
+      RX_ACK_BIT <= '0';
+      tcp_state_handle <= '0';
+
+      assert(closed = '0');
+      assert(action_valid = '0');
+      wait for CLK_period;
+      assert(action_valid = '0');
+
+      -- Receive ACK for the FIN
+      RX_ACK_NUM <= X"00121213";
+      RX_ACK_BIT <= '1';
+      tcp_state_handle <= '1';
+      wait for CLK_period;
+      RX_ACK_BIT <= '0';
+      tcp_state_handle <= '0';
+
+      assert(closed = '1');
+      assert(action_valid = '0');
+      wait for CLK_period;
+      assert(action_valid = '0');
+
       -- Test Simutaneous open
       -- Reset
       RX_RST_BIT <= '1';
@@ -245,6 +300,58 @@ BEGIN
       assert(action_valid = '0');
       wait for CLK_period;
 
+      -- Test initiator close
+      TX_SEQ_TO_SEND <= X"00121212";
+      tcp_active_close <= '1';
+      wait for CLK_period;
+      tcp_active_close <= '0';
+
+      assert(action = MAKE_FIN);
+      assert(action_valid = '1');
+      wait for CLK_period;
+      assert(action_valid = '0');
+
+      -- Test ack for non - fin
+      RX_ACK_NUM <= X"00121210";
+      RX_ACK_BIT <= '1';
+      tcp_state_handle <= '1';
+      wait for CLK_period;
+      RX_ACK_BIT <= '0';
+      tcp_state_handle <= '0';
+
+      assert(action_valid = '0');
+      wait for CLK_period;
+      assert(action_valid = '0');
+
+      wait for 3 * CLK_period;
+      assert(closed = '0');
+
+      -- Test ack for fin
+      RX_ACK_NUM <= X"00121213";
+      RX_ACK_BIT <= '1';
+      tcp_state_handle <= '1';
+      wait for CLK_period;
+      RX_ACK_BIT <= '0';
+      tcp_state_handle <= '0';
+
+      assert(action_valid = '0');
+      wait for CLK_period;
+      assert(action_valid = '0');
+
+      RX_FIN_BIT <= '1';
+      tcp_state_handle <= '1';
+      wait for CLK_period;
+      RX_FIN_BIT <= '0';
+      tcp_state_handle <= '0';
+
+      assert(action = MAKE_ACK);
+      assert(action_valid = '1');
+      wait for CLK_period;
+      assert(action_valid = '0');
+
+      wait for 3 * CLK_period;
+      assert(closed = '1');
+
       -- Test passive open
       -- Reset
       RX_RST_BIT <= '1';
@@ -304,7 +411,61 @@ BEGIN
       assert(action_valid = '0');
       wait for CLK_period;
 
+      -- Test Simutaneous Close
+      TX_SEQ_TO_SEND <= X"00121212";
+      tcp_active_close <= '1';
+      wait for CLK_period;
+      tcp_active_close <= '0';
+
+      assert(action = MAKE_FIN);
+      assert(action_valid = '1');
+      wait for CLK_period;
+      assert(action_valid = '0');
+
+      RX_FIN_BIT <= '1';
+      tcp_state_handle <= '1';
+      wait for CLK_period;
+      RX_FIN_BIT <= '0';
+      tcp_state_handle <= '0';
+
+      assert(action = MAKE_ACK);
+      assert(action_valid = '1');
+      wait for CLK_period;
+      assert(action_valid = '0');
+
+      -- ACK for non FIN
+      -- Test ack for non - fin
+      RX_ACK_NUM <= X"00121210";
+      RX_ACK_BIT <= '1';
+      tcp_state_handle <= '1';
+      wait for CLK_period;
+      RX_ACK_BIT <= '0';
+      tcp_state_handle <= '0';
+
+      assert(action_valid = '0');
+      wait for CLK_period;
+      assert(action_valid = '0');
+
+      wait for 3 * CLK_period;
+      assert(closed = '0');
+
+      -- Test ack for fin
+      RX_ACK_NUM <= X"00121213";
+      RX_ACK_BIT <= '1';
+      tcp_state_handle <= '1';
+      wait for CLK_period;
+      RX_ACK_BIT <= '0';
+      tcp_state_handle <= '0';
+
+      assert(action_valid = '0');
+      wait for CLK_period;
+      assert(action_valid = '0');
+
+      wait for 3 * CLK_period;
+      assert(closed = '1');
+
+      report "DONE";
+
       wait;
    end process;
-
 END;

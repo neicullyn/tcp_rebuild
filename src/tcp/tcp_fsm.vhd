@@ -23,6 +23,9 @@ entity tcp_fsm is
     RX_FIN_BIT : in std_logic;
     RX_RST_BIT : in std_logic;
 
+    TX_SEQ_TO_SEND : in unsigned(31 downto 0);
+
+    closed : out std_logic;
     established : out std_logic;
     action  : out CORE_ACTION;
     action_valid : out std_logic;
@@ -56,6 +59,7 @@ begin
   TX_DST_IP_ADDR <= tcp_peer_IP;
   TX_DST_PORT <= tcp_peer_PORT;
 
+  closed <= '1' when tcp_state = S_CLOSED else '0';
   established <= '1' when tcp_state = S_ESTABLISHED else '0';
 
   TCP_SM : process (nRST, CLK)
@@ -121,6 +125,7 @@ begin
             tcp_state <= S_FIN_WAIT1;
 
             action <= MAKE_FIN;
+            tcp_FIN_SEQ <= TX_SEQ_TO_SEND;
             action_valid <= '1';
           end if;
 
@@ -140,6 +145,7 @@ begin
           tcp_state <= S_LAST_ACK;
 
           action <= MAKE_FIN;
+          tcp_FIN_SEQ <= TX_SEQ_TO_SEND;
           action_valid <= '1';
 
         when S_LAST_ACK =>
@@ -150,11 +156,10 @@ begin
         when S_FIN_WAIT1 =>
           if (tcp_state_handle = '1' and tcp_ACK_to_FIN = '1') then
             tcp_state <= S_FIN_WAIT2;
-
-            action <= MAKE_ACK;
-            action_valid <= '1';
           elsif (tcp_state_handle = '1' and RX_FIN_BIT = '1') then
             -- Simutaneous Close
+            action <= MAKE_ACK;
+            action_valid <= '1';
             tcp_state <= S_CLOSING;
           end if;
 
