@@ -27,6 +27,11 @@ entity TCP is
       CLK : in std_logic;
       nRST : in std_logic;
 
+      -- Buttons
+      tcp_passive_open : in std_logic;
+      tcp_active_open : in std_logic;
+      tcp_active_close : in std_logic;
+
       -- TXD to the underlying module
       TXDU : out std_logic_vector(7 downto 0);
       TXEN : out std_logic;
@@ -541,5 +546,15 @@ begin
   TX_SYN_BIT <= '1';
   TX_FIN_BIT <= '1';
   TX_DATA_CHECKSUM <= X"F5F5";
+
+
+  tcp_peer_valid <= '1' when tcp_peer_IP = RX_SRC_IP_ADDR
+                         and tcp_peer_PORT = RX_SRC_PORT
+                        else '0'
+
+  tcp_ACK_to_FIN <= '1' when RX_ACK_BIT = '1'
+                         and RX_ACK_NUM = tcp_FIN_SEQ + 1;
+
+
 
 end Behavioral;

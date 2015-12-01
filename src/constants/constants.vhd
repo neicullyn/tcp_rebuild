@@ -13,6 +13,7 @@ package TCP_CONSTANTS is
   constant VAIO_IP_ADDR: IP_ADDR_TYPE := (X"C0",X"A8",X"01",X"03");
 
   constant LISTEN_PORT: std_logic_vector(15 downto 0) := X"0050"; -- 80
+  constant VAIO_LISTEN_PORT : std_logic_vector(15 downto 0) := X"0150";
 
   type L3_PROTOCOL is (IP, ARP, UNKNOWN);
   type ETHERTYPE_CODE_TYPE is array(0 to 1) of std_logic_vector(7 downto 0);
@@ -22,5 +23,7 @@ package TCP_CONSTANTS is
   type L4_PROTOCOL is (TCP, UDP, UNKNOWN);
   constant TCP_PROTOCOL_CODE :std_logic_vector(7 downto 0) := X"06";
   constant UDP_PROTOCOL_CODE : std_logic_vector(7 downto 0) := X"11";
+
+  type core_action is (NONE, MAKE_ACK, MAKE_SYN, MAKE_SYN_ACK, MAKE_FIN);
 
 end TCP_CONSTANTS;
