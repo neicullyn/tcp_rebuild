@@ -1,12 +1,12 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
+use work.TCP_CONSTANTS.all;
 
 entity tcp_trs_task_scheduler is
 	port(
 		-- For protocol core
-
-		core_dst_addr : in std_logic_vector(31 downto 0);
+		core_dst_addr : in IP_ADDR_TYPE;
 		core_dst_port : in std_logic_vector(15 downto 0);
 		core_ack_num : in std_logic_vector(31 downto 0);
 		core_ack : in std_logic;
@@ -25,7 +25,7 @@ entity tcp_trs_task_scheduler is
 		-- data_len : in std_logic_vector(10 downto 0);
 
 		-- For upper layer (application)
-		app_dst_addr : in std_logic_vector(31 downto 0);
+		app_dst_addr : in IP_ADDR_TYPE;
 		app_dst_port : in std_logic_vector(15 downto 0);
 		app_ack_num : in std_logic_vector(31 downto 0);
 
@@ -44,13 +44,14 @@ entity tcp_trs_task_scheduler is
 		app_pushing : out std_logic;
 
 		-- Output
-		dst_addr : out std_logic_vector(31 downto 0);
+		dst_addr : out IP_ADDR_TYPE;
 		dst_port : out std_logic_vector(15 downto 0);
 		ack_num : out std_logic_vector(31 downto 0);
-		data_offset : out std_logic_vector(3 downto 0);
-		flags : out std_logic_vector(8 downto 0);
-		window_size : out std_logic_vector(15 downto 0);
-		urgent_pointer : out std_logic_vector(15 downto 0);
+
+		ack_bit : out std_logic;
+		rst_bit : out std_logic;
+		syn_bit : out std_logic;
+		fin_bit : out std_logic;
 
 		en_data : out std_logic;
 		data_addr : out std_logic_vector(22 downto 0);
@@ -59,7 +60,7 @@ entity tcp_trs_task_scheduler is
 		-- Control signals for output
 		valid : out std_logic;
 		update : in std_logic; -- indicates that the output has been used
-							   -- and needs updating
+							   					 -- and needs updating
 		empty : out std_logic; -- indicates the queue is empty
 
 		-- Asynchronous reset and CLK
@@ -153,12 +154,15 @@ architecture Behavioral of tcp_trs_task_scheduler is
 	signal FIFO_empty : std_logic;
 	signal FIFO_full : std_logic;
 
+	signal flags: std_logic_vector(8 downto 0);
+
 	type push_state_type is (S_IDLE, S_WAIT1, S_WAIT2);
 	signal push_state : push_state_type;
 
 	type pop_state_type is (S_IDLE, S_WAIT1, S_WAIT2);
 	signal pop_state : pop_state_type;
 
+	signal dst_addr_dummy : std_logic_vector(31 downto 0);
 begin
 	Inst_tcp_packet_encoder: tcp_packet_encoder PORT MAP(
 		dst_addr => e_dst_addr,
@@ -179,14 +183,19 @@ begin
 		wr => e_wr
 	);
 
+	dst_addr(0) <= dst_addr_dummy(31 downto 24);
+	dst_addr(1) <= dst_addr_dummy(23 downto 16);
+	dst_addr(2) <= dst_addr_dummy(15 downto 8);
+	dst_addr(3) <= dst_addr_dummy(7 downto 0);
+
 	Inst_tcp_packet_decoder: tcp_packet_decoder PORT MAP(
-		dst_addr => dst_addr,
+		dst_addr => dst_addr_dummy,
 		dst_port => dst_port,
 		ack_num => ack_num,
-		data_offset => data_offset,
+		data_offset => open,
 		flags => flags,
-		window_size => window_size,
-		urgent_pointer => urgent_pointer,
+		window_size => open,
+		urgent_pointer => open,
 		en_data => en_data,
 		data_addr => data_addr,
 		data_len => data_len,
@@ -211,6 +220,11 @@ begin
 	);
 	empty <= '1' when count = 0 else '0';
 
+	ack_bit <= flags(4);
+	rst_bit <= flags(2);
+	syn_bit <= flags(1);
+	fin_bit <= flags(0);
+
 	scheduler_proc: process (nRST, CLK)
 	begin
 		if (nRST = '0') then
@@ -232,7 +246,7 @@ begin
 				when S_IDLE =>
 					if (core_push = '1') then
 					-- Handle push request from core
-						e_dst_addr <= core_dst_addr;
+						e_dst_addr <= (core_dst_addr(0) & core_dst_addr(1) & core_dst_addr(2) & core_dst_addr(3));
 						e_dst_port <= core_dst_port;
 						e_ack_num <= core_ack_num;
 						e_ack <= core_ack;
@@ -249,7 +263,7 @@ begin
 
 					elsif (app_push = '1') then
 					-- Handle push request from app
-						e_dst_addr <= app_dst_addr;
+						e_dst_addr <= (app_dst_addr(0) & app_dst_addr(1) & app_dst_addr(2) & app_dst_addr(3));
 						e_dst_port <= app_dst_port;
 						e_ack_num <= app_ack_num;
 						e_ack <= '0';

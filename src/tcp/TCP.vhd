@@ -61,6 +61,72 @@ architecture Behavioral of TCP is
     );
   end component;
 
+  component tcp_trs_task_scheduler is
+    port(
+      -- For protocol core
+      core_dst_addr : in IP_ADDR_TYPE;
+      core_dst_port : in std_logic_vector(15 downto 0);
+      core_ack_num : in std_logic_vector(31 downto 0);
+      core_ack : in std_logic;
+      core_rst : in std_logic;
+      core_syn : in std_logic;
+      core_fin : in std_logic;
+
+      -- Push the core packet info into the scheduler
+      -- Note that core_push has higher priority than app_push
+      core_push : in std_logic;
+      core_pushing : out std_logic;
+
+      -- Packet generate by the protocol doesn't have payload
+      -- en_data : in std_logic;
+      -- data_addr : in std_logic_vector(22 downto 0);
+      -- data_len : in std_logic_vector(10 downto 0);
+
+      -- For upper layer (application)
+      app_dst_addr : in IP_ADDR_TYPE;
+      app_dst_port : in std_logic_vector(15 downto 0);
+      app_ack_num : in std_logic_vector(31 downto 0);
+
+      -- Application layer doesn't set flags (for our simplified implementation)
+      -- ack : in std_logic;
+      -- rst : in std_logic;
+      -- syn : in std_logic;
+      -- fin : in std_logic;
+
+      app_en_data : in std_logic;
+      app_data_addr : in std_logic_vector(22 downto 0);
+      app_data_len : in std_logic_vector(10 downto 0);
+
+      -- Push the app packet info into the scheduler
+      app_push : in std_logic;
+      app_pushing : out std_logic;
+
+      -- Output
+      dst_addr : out IP_ADDR_TYPE;
+      dst_port : out std_logic_vector(15 downto 0);
+      ack_num : out std_logic_vector(31 downto 0);
+
+      ack_bit : out std_logic;
+      rst_bit : out std_logic;
+      syn_bit : out std_logic;
+      fin_bit : out std_logic;
+
+      en_data : out std_logic;
+      data_addr : out std_logic_vector(22 downto 0);
+      data_len : out std_logic_vector(10 downto 0);
+
+      -- Control signals for output
+      valid : out std_logic;
+      update : in std_logic; -- indicates that the output has been used
+                             -- and needs updating
+      empty : out std_logic; -- indicates the queue is empty
+
+      -- Asynchronous reset and CLK
+      nRST : in std_logic;
+      CLK : in std_logic
+    );
+  end component;
+
  	type RX_states is (Reset, Header, Data, Handle, Err);
 	signal RX_state : RX_states;
 	signal RX_counter : unsigned(15 downto 0);
@@ -161,6 +227,46 @@ architecture Behavioral of TCP is
   signal TX_CalcChecksum_counter: unsigned(3 downto 0);
   signal TX_CalcChecksum_p1: unsigned(4 downto 0);
   signal TX_CalcChecksum_p2: unsigned(4 downto 0);
+
+  -- scheduler
+  signal SCH_CORE_DST_ADDR : IP_ADDR_TYPE;
+  signal SCH_CORE_DST_PORT : std_logic_vector(15 downto 0);
+  signal SCH_CORE_ACK_NUM : std_logic_vector(31 downto 0);
+  signal SCH_CORE_ACK : std_logic;
+  signal SCH_CORE_RST : std_logic;
+  signal SCH_CORE_SYN : std_logic;
+  signal SCH_CORE_FIN : std_logic;
+
+  signal SCH_CORE_PUSH : std_logic;
+  signal SCH_CORE_PUSHING : std_logic;
+
+  signal SCH_APP_DST_ADDR : IP_ADDR_TYPE;
+  signal SCH_APP_DST_PORT : std_logic_vector(15 downto 0);
+  signal SCH_APP_ACK_NUM : std_logic_vector(31 downto 0);
+
+  signal SCH_APP_EN_DATA : std_logic;
+  signal SCH_APP_DATA_ADDR : std_logic_vector(22 downto 0);
+  signal SCH_APP_DATA_LEN : std_logic_vector(10 downto 0);
+
+  signal SCH_APP_PUSH : std_logic;
+  signal SCH_APP_PUSHING : std_logic;
+
+  signal SCH_DST_ADDR : IP_ADDR_TYPE;
+  signal SCH_DST_PORT : std_logic_vector(15 downto 0);
+  signal SCH_ACK_NUM : std_logic_vector(31 downto 0);
+  signal SCH_ACK_BIT : std_logic;
+  signal SCH_RST_BIT : std_logic;
+  signal SCH_SYN_BIT : std_logic;
+  signal SCH_FIN_BIT : std_logic;
+  signal SCH_EN_DATA : std_logic;
+  signal SCH_DATA_ADDR : std_logic_vector(22 downto 0);
+  signal SCH_DATA_LEN : std_logic_vector(10 downto 0);
+
+  signal SCH_VALID : std_logic;
+  signal SCH_UPDATE : std_logic;
+
+  signal SCH_EMPTY : std_logic;
+
 
 begin
   RXDU_BUF_proc : process (CLK)
@@ -534,6 +640,43 @@ begin
   end process;
   TX_CHECKSUM <= TX_CHKSUM_CHECKSUM when TX_CalcChecksum_state = Done else X"0000";
 
+
+  SCH_inst : tcp_trs_task_scheduler
+  port map (
+    core_dst_addr => SCH_CORE_DST_ADDR,
+    core_dst_port => SCH_CORE_DST_PORT,
+    core_ack_num => SCH_CORE_ACK_NUM,
+    core_ack => SCH_CORE_ACK,
+    core_rst => SCH_CORE_RST,
+    core_syn => SCH_CORE_SYN,
+    core_fin => SCH_CORE_FIN,
+    core_push => SCH_CORE_PUSH,
+    core_pushing => SCH_CORE_PUSHING,
+    app_dst_addr => SCH_APP_DST_ADDR,
+    app_dst_port => SCH_APP_DST_PORT,
+    app_ack_num => SCH_APP_ACK_NUM,
+    app_en_data => SCH_APP_EN_DATA,
+    app_data_addr => SCH_APP_DATA_ADDR,
+    app_data_len => SCH_APP_DATA_LEN,
+    app_push => SCH_APP_PUSH,
+    app_pushing => SCH_APP_PUSHING,
+    dst_addr => SCH_DST_ADDR,
+    dst_port => SCH_DST_PORT,
+    ack_num => SCH_ACK_NUM,
+    ack_bit => SCH_ACK_BIT,
+    rst_bit => SCH_RST_BIT,
+    syn_bit => SCH_SYN_BIT,
+    fin_bit => SCH_FIN_BIT,
+    en_data => SCH_EN_DATA,
+    data_addr => SCH_DATA_ADDR,
+    data_len => SCH_DATA_LEN,
+    valid => SCH_VALID,
+    update => SCH_UPDATE,
+    empty => SCH_EMPTY,
+    nRST => nRST,
+    CLK => CLK
+  );
+
   -- For testing
   TX_start <= '1';
   TX_DST_IP <= VAIO_IP_ADDR;
@@ -546,15 +689,4 @@ begin
   TX_SYN_BIT <= '1';
   TX_FIN_BIT <= '1';
   TX_DATA_CHECKSUM <= X"F5F5";
-
-
-  tcp_peer_valid <= '1' when tcp_peer_IP = RX_SRC_IP_ADDR
-                         and tcp_peer_PORT = RX_SRC_PORT
-                        else '0'
-
-  tcp_ACK_to_FIN <= '1' when RX_ACK_BIT = '1'
-                         and RX_ACK_NUM = tcp_FIN_SEQ + 1;
-
-
-
 end Behavioral;

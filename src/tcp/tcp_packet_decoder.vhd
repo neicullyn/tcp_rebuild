@@ -172,7 +172,6 @@ begin
 
 				when S_ACK_NUM4 =>
 					-- The flags
-					flags(8) <= '0';
 					flags(7 downto 0) <= encoded_data;
 					rd <= '1';
 					pop_state <= S_FLAGS;
